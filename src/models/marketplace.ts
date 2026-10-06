@@ -19,6 +19,7 @@ export type Seller = {
   reviewCount: number;
   location: string;
   bio: string;
+  avatarUrl?: string;
   avatarSlot?: AssetSlot;
 };
 

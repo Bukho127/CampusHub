@@ -5,6 +5,7 @@ import { Listing } from "../models/Listing";
 import { Review } from "../models/Review";
 import { User } from "../models/User";
 import { sendCampusVerificationEmail } from "../services/emailService";
+import { fileToPublicUploadUrl } from "../services/uploadService";
 import { AppError } from "../utils/AppError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
@@ -53,6 +54,24 @@ export const updateMe = asyncHandler(async (req: Request, res: Response) => {
   }
 
   sendSuccess(res, { user }, "Profile updated");
+});
+
+export const updateMyAvatar = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.file) {
+    throw new AppError("Choose an avatar image to upload", 400);
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?.id,
+    { avatar: fileToPublicUploadUrl(req.file) },
+    { new: true, runValidators: true }
+  );
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  sendSuccess(res, { user }, "Profile photo updated");
 });
 
 export const requestVendorVerification = asyncHandler(async (req: Request, res: Response) => {

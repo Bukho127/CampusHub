@@ -10,6 +10,7 @@ import { Badge } from "../../src/components/Badge";
 import { CategoryChip } from "../../src/components/CategoryChip";
 import { VerificationBadge } from "../../src/components/VerificationBadge";
 import { EmptyState } from "../../src/components/EmptyState";
+import { ProfileAvatar } from "../../src/components/ProfileAvatar";
 import { ProductCard } from "../../src/components/ProductCard";
 import { useAuth } from "../../src/contexts/AuthContext";
 import type { BackendReview } from "../../src/api/types";
@@ -145,9 +146,7 @@ export default function SellerProfileScreen() {
         </Pressable>
 
         <View style={styles.profileRow}>
-          <View style={styles.avatar}>
-            <Feather name="user" size={34} color={colors.ink} />
-          </View>
+          <ProfileAvatar uri={seller.avatarUrl} size={82} iconSize={34} />
           <View style={styles.profileText}>
             <Text style={styles.name}>{seller.displayName}</Text>
             <Text style={styles.meta}>
@@ -280,14 +279,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 16
-  },
-  avatar: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceStrong,
-    borderRadius: radii.pill,
-    height: 82,
-    justifyContent: "center",
-    width: 82
   },
   profileText: {
     flex: 1

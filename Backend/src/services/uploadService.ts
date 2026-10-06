@@ -17,3 +17,7 @@ export function filesToStoredImages(files: Express.Multer.File[] | undefined, ti
     alt: `${title} image ${index + 1}`
   }));
 }
+
+export function fileToPublicUploadUrl(file: Express.Multer.File) {
+  return `/uploads/${path.basename(file.filename)}`;
+}

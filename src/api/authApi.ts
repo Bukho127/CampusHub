@@ -14,6 +14,12 @@ export type LoginPayload = {
   password: string;
 };
 
+export type AvatarUpload = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
 export async function register(payload: RegisterPayload) {
   const response = await apiRequest<{ user: BackendUser; token: string }>("/auth/register", {
     method: "POST",
@@ -57,6 +63,18 @@ export async function verifyCampusEmail(token: string) {
     method: "POST",
     body: JSON.stringify({ token })
   });
+}
+
+export async function uploadProfileAvatar(avatar: AvatarUpload, token: string) {
+  const formData = new FormData();
+  formData.append("avatar", avatar as unknown as Blob);
+
+  const response = await apiRequest<{ user: BackendUser }>("/users/me/avatar", {
+    method: "PATCH",
+    token,
+    body: formData
+  });
+  return response.data.user;
 }
 
 export async function getMe(token: string) {

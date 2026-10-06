@@ -58,7 +58,8 @@ function mapSeller(seller: BackendUser): Seller {
     rating: seller.rating ?? undefined,
     reviewCount: seller.reviewCount ?? 0,
     location: seller.location ?? "Campus community",
-    bio: "Community Store seller profile. Public contact details stay private until trusted workflows are integrated."
+    bio: "Community Store seller profile. Public contact details stay private until trusted workflows are integrated.",
+    avatarUrl: seller.avatar ? toAbsoluteApiUrl(seller.avatar) : undefined
   };
 }
 

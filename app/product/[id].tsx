@@ -9,6 +9,7 @@ import { DietaryTagBadge } from "../../src/components/DietaryTagBadge";
 import { FavoriteButton } from "../../src/components/FavoriteButton";
 import { VerificationBadge } from "../../src/components/VerificationBadge";
 import { EmptyState } from "../../src/components/EmptyState";
+import { ProfileAvatar } from "../../src/components/ProfileAvatar";
 import { ProductCard } from "../../src/components/ProductCard";
 import type { Listing, Seller } from "../../src/models/marketplace";
 import { getListingById, getListings, getSellerById } from "../../src/services/productService";
@@ -69,7 +70,7 @@ export default function ProductDetailScreen() {
           <FavoriteButton listingId={listing.id} size={22} unselectedColor={colors.ink} style={styles.heroFavorite} />
           {seller ? (
             <Pressable accessibilityLabel={`View ${seller.displayName}'s seller profile`} onPress={() => router.push(`/seller/${seller.id}`)} style={styles.heroSeller}>
-              <Feather name="user" size={22} color={colors.ink} />
+              <ProfileAvatar uri={seller.avatarUrl} size={44} iconSize={22} />
             </Pressable>
           ) : null}
         </View>
@@ -106,9 +107,7 @@ export default function ProductDetailScreen() {
           onPress={() => seller && router.push(`/seller/${seller.id}`)}
           style={styles.sellerCard}
         >
-          <View style={styles.sellerAvatar}>
-            <Feather name="user" size={24} color={colors.ink} />
-          </View>
+          <ProfileAvatar uri={seller?.avatarUrl} size={48} iconSize={24} />
           <View style={styles.sellerText}>
             <Text style={styles.sellerName}>{seller?.displayName ?? "Community seller"}</Text>
             {seller ? <VerificationBadge verified={seller.verificationState === "verified"} label={seller.verificationLabel ?? seller.verificationState} /> : null}
@@ -241,14 +240,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: spacing.lg,
     padding: 14
-  },
-  sellerAvatar: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceStrong,
-    borderRadius: radii.pill,
-    height: 48,
-    justifyContent: "center",
-    width: 48
   },
   sellerText: {
     flex: 1
