@@ -13,6 +13,7 @@ export type Seller = {
   identityType: UserType;
   sellerType: SellerType;
   verificationState: VerificationState;
+  verificationLabel?: string;
   rating?: number;
   reviewCount: number;
   location: string;
@@ -54,7 +55,7 @@ type ListingBase = {
 
 export type GoodsListing = ListingBase & {
   type: "goods";
-  condition: ListingCondition;
+  condition?: ListingCondition;
   quantityAvailable: number;
   tradeEnabled: boolean;
 };

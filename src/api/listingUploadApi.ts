@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import type { BackendListing } from "./types";
 
 export type ListingFormPayload = {
   type: "goods" | "service";
@@ -36,7 +37,7 @@ function buildListingFormData(payload: ListingFormPayload) {
 }
 
 export async function createListingApi(payload: ListingFormPayload, token: string) {
-  return apiRequest("/listings", {
+  return apiRequest<{ listing: BackendListing }>("/listings", {
     method: "POST",
     token,
     body: buildListingFormData(payload)

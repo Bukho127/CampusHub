@@ -35,7 +35,7 @@ const listingBaseSchema = z.object({
 
 export const createListingSchema = listingBaseSchema.superRefine((value, context) => {
     if (value.type === "goods") {
-      if (!value.condition) {
+      if (!value.condition && !value.category.toLowerCase().includes("food")) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["condition"], message: "condition is required for goods" });
       }
       if (value.quantityAvailable === undefined) {

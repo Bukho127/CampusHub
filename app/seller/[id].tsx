@@ -57,7 +57,7 @@ export default function SellerProfileScreen() {
               {seller.identityType} - {seller.location}
             </Text>
             <View style={styles.badges}>
-              <Badge label={seller.verificationState} tone={seller.verificationState === "verified" ? "success" : "accent"} />
+              <Badge label={seller.verificationLabel ?? seller.verificationState} tone={seller.verificationState === "verified" ? "success" : "accent"} />
               <Badge label={seller.sellerType} />
             </View>
           </View>

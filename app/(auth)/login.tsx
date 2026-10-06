@@ -83,7 +83,9 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          <Text style={styles.forgot}>Forgot Password</Text>
+          <Pressable accessibilityRole="link" onPress={() => router.push("/(auth)/forgot-password")} style={styles.forgotButton}>
+            <Text style={styles.forgot}>Forgot Password?</Text>
+          </Pressable>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={submit} style={[styles.primaryButton, isSubmitting && styles.disabled]}>
@@ -183,11 +185,13 @@ const styles = StyleSheet.create({
     minWidth: 44,
     justifyContent: "center"
   },
-  forgot: {
+  forgotButton: {
     alignSelf: "flex-end",
-    color: colors.ink,
-    fontSize: 13,
     marginTop: -12
+  },
+  forgot: {
+    color: colors.ink,
+    fontSize: 13
   },
   error: {
     color: colors.danger,

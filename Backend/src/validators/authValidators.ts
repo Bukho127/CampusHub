@@ -16,3 +16,16 @@ export const loginSchema = z.object({
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email().toLowerCase()
 });
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(32).max(256),
+  password: z.string().min(8).max(128)
+});
+
+export const campusEmailVerificationSchema = z.object({
+  campusEmail: z.string().trim().email().toLowerCase()
+});
+
+export const verifyCampusEmailSchema = z.object({
+  token: z.string().min(32).max(256)
+});

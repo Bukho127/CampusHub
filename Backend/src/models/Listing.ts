@@ -41,7 +41,7 @@ listingSchema.index({ seller: 1, status: 1 });
 
 listingSchema.pre("validate", function validateListingType(next) {
   if (this.type === "goods") {
-    if (!this.condition) return next(new Error("condition is required for goods listings"));
+    if (!this.condition && !this.category.toLowerCase().includes("food")) return next(new Error("condition is required for non-food goods listings"));
     if (this.quantityAvailable === undefined) return next(new Error("quantityAvailable is required for goods listings"));
     this.serviceMode = undefined;
   }

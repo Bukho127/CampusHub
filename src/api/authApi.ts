@@ -30,6 +30,35 @@ export async function login(payload: LoginPayload) {
   return response.data;
 }
 
+export async function requestPasswordReset(email: string) {
+  await apiRequest<null>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email })
+  });
+}
+
+export async function resetPassword(token: string, password: string) {
+  await apiRequest<null>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password })
+  });
+}
+
+export async function requestCampusEmailVerification(campusEmail: string, token: string) {
+  await apiRequest<null>("/users/me/campus-verification", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ campusEmail })
+  });
+}
+
+export async function verifyCampusEmail(token: string) {
+  await apiRequest<{ campusEmailVerified: boolean }>("/auth/verify-campus-email", {
+    method: "POST",
+    body: JSON.stringify({ token })
+  });
+}
+
 export async function getMe(token: string) {
   const response = await apiRequest<{ user: BackendUser }>("/auth/me", { token });
   return response.data.user;

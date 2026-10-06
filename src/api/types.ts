@@ -23,6 +23,9 @@ export type BackendUser = {
   role?: BackendRole;
   emailVerificationStatus?: BackendVerificationState;
   vendorVerificationStatus?: BackendVerificationState;
+  campusEmailVerificationStatus?: BackendVerificationState;
+  campusEmailVerified?: boolean;
+  campusEmailVerifiedAt?: string | null;
   rating?: number | null;
   reviewCount?: number;
   location?: string | null;

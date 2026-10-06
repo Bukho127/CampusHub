@@ -49,7 +49,7 @@ export function ProductCard({ listing, seller, compact }: Props) {
           {listing.title}
         </Text>
         <Text numberOfLines={1} style={styles.meta}>
-          {listing.type === "goods" ? listing.condition : "Service"} - {listing.location}
+          {listing.type === "goods" ? listing.condition ?? (listing.categoryId.toLowerCase().includes("food") ? "Food & Bev" : "Goods") : "Service"} - {listing.location}
         </Text>
         <Text numberOfLines={1} style={styles.seller}>
           {seller?.displayName ?? listing.seller?.displayName ?? "Community seller"}

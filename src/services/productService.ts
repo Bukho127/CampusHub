@@ -38,7 +38,14 @@ function mapCategory(category: BackendCategory): Category {
 }
 
 function mapSeller(seller: BackendUser): Seller {
-  const verified = seller.vendorVerificationStatus === "verified" || seller.emailVerificationStatus === "verified";
+  const campusVerified = seller.campusEmailVerificationStatus === "verified" || Boolean(seller.campusEmailVerified || seller.campusEmailVerifiedAt);
+  const adminVerified = seller.vendorVerificationStatus === "verified";
+  const verified = campusVerified || adminVerified;
+  const verificationState = verified
+    ? "verified"
+    : seller.campusEmailVerificationStatus === "pending" || seller.vendorVerificationStatus === "pending"
+      ? "pending"
+      : "unverified";
   const id = seller.id ?? seller._id ?? "";
 
   return {
@@ -46,7 +53,8 @@ function mapSeller(seller: BackendUser): Seller {
     displayName: seller.displayName,
     identityType: seller.identityType,
     sellerType: seller.role === "vendor" && seller.vendorVerificationStatus === "verified" ? "vendor" : "casual",
-    verificationState: verified ? "verified" : seller.vendorVerificationStatus ?? seller.emailVerificationStatus ?? "unverified",
+    verificationState,
+    verificationLabel: campusVerified ? "Campus email verified" : adminVerified ? "Admin verified" : verificationState === "pending" ? "Verification pending" : "Unverified",
     rating: seller.rating ?? undefined,
     reviewCount: seller.reviewCount ?? 0,
     location: seller.location ?? "Campus community",

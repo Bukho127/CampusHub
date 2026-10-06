@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AssetSlotView } from "../../src/components/AssetSlotView";
@@ -25,23 +25,23 @@ export default function HomeScreen() {
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [recent, setRecent] = useState<Listing[]>([]);
 
-  useEffect(() => {
-    Promise.all([
-      getCategories(),
-      getCommunityPosts(),
-      getSellers(),
-      getListings({ sort: "rating" }),
-      getListings({ sort: "newest" })
-    ]).then(([categories, posts, sellers, featuredItems, recentItems]) => {
-      setCategories(categories);
-      setCommunityPosts(posts);
-      setSellers(sellers);
-      setFeatured(featuredItems.slice(0, 4));
-      setRecent(recentItems.slice(0, 4));
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-  const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), []);
+      getCategories().then((items) => { if (active) setCategories(items); }).catch(() => { if (active) setCategories([]); });
+      getCommunityPosts().then((posts) => { if (active) setCommunityPosts(posts); }).catch(() => { if (active) setCommunityPosts([]); });
+      getSellers().then((items) => { if (active) setSellers(items); }).catch(() => { if (active) setSellers([]); });
+      getListings({ sort: "rating" }).then((items) => { if (active) setFeatured(items.slice(0, 4)); }).catch(() => { if (active) setFeatured([]); });
+      getListings({ sort: "newest" }).then((items) => { if (active) setRecent(items.slice(0, 4)); }).catch(() => { if (active) setRecent([]); });
+
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), [sellers]);
 
   function submitSearch() {
     router.push({ pathname: "/(tabs)/explore", params: { q: search } });
@@ -117,11 +117,14 @@ export default function HomeScreen() {
         />
 
         <SectionHeader title="Recently listed" />
-        <View style={styles.grid}>
-          {recent.slice(0, 2).map((item) => (
-            <ProductCard key={item.id} listing={item} seller={sellerMap.get(item.sellerId)} compact />
-          ))}
-        </View>
+        <FlatList
+          horizontal
+          data={recent}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ProductCard listing={item} seller={sellerMap.get(item.sellerId)} />}
+          contentContainerStyle={styles.productRow}
+          showsHorizontalScrollIndicator={false}
+        />
 
         <SectionHeader title="Community deals" />
         {communityPosts.map((post) => (
@@ -264,11 +267,6 @@ const styles = StyleSheet.create({
   productRow: {
     gap: 14,
     paddingBottom: 24
-  },
-  grid: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 24
   },
   post: {
     borderBottomColor: colors.line,

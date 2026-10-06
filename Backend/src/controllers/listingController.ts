@@ -7,7 +7,7 @@ import { AppError } from "../utils/AppError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
 
-const sellerPopulate = "displayName identityType role emailVerificationStatus vendorVerificationStatus rating reviewCount location avatar";
+const sellerPopulate = "displayName identityType role emailVerificationStatus vendorVerificationStatus campusEmailVerificationStatus campusEmailVerifiedAt rating reviewCount location avatar";
 
 function getUploadedFiles(req: Request) {
   return Array.isArray(req.files) ? req.files : undefined;

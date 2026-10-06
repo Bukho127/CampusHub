@@ -1,5 +1,5 @@
 import { createContext, PropsWithChildren, useContext, useMemo, useState } from "react";
-import { login as loginApi, register as registerApi, type LoginPayload, type RegisterPayload } from "../api/authApi";
+import { getMe, login as loginApi, register as registerApi, type LoginPayload, type RegisterPayload } from "../api/authApi";
 import type { BackendUser } from "../api/types";
 
 type AuthContextValue = {
@@ -8,6 +8,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 };
 
@@ -31,6 +32,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const result = await registerApi(payload);
         setUser(result.user);
         setToken(result.token);
+      },
+      refreshUser: async () => {
+        if (token) setUser(await getMe(token));
       },
       logout: () => {
         setUser(null);

@@ -36,6 +36,13 @@ const userSchema = new Schema(
     },
     rating: { type: Number, min: 0, max: 5 },
     reviewCount: { type: Number, default: 0, min: 0 },
+    passwordResetTokenHash: { type: String, select: false },
+    passwordResetExpiresAt: { type: Date, select: false },
+    campusEmail: { type: String, lowercase: true, trim: true },
+    campusEmailVerificationStatus: { type: String, enum: ["unverified", "pending", "verified"], default: "unverified" },
+    campusEmailVerifiedAt: { type: Date },
+    campusEmailVerificationTokenHash: { type: String, select: false },
+    campusEmailVerificationExpiresAt: { type: Date, select: false },
     location: { type: String, trim: true },
     avatar: { type: String, trim: true }
   },
@@ -43,6 +50,7 @@ const userSchema = new Schema(
 );
 
 userSchema.index({ displayName: "text", location: "text" });
+userSchema.index({ campusEmail: 1 }, { unique: true, sparse: true });
 
 export type UserDocument = InferSchemaType<typeof userSchema> & { _id: unknown };
 export const User = model("User", userSchema);

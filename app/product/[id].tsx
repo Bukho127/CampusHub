@@ -73,7 +73,7 @@ export default function ProductDetailScreen() {
         </View>
 
         <View style={styles.badges}>
-          <Badge label={listing.type === "goods" ? listing.condition : "Service"} />
+          <Badge label={listing.type === "goods" ? listing.condition ?? (listing.categoryId.toLowerCase().includes("food") ? "Food & Bev" : "Goods") : "Service"} />
           <Badge label={listing.location} />
           {listing.negotiable ? <Badge label="Negotiable" tone="accent" /> : null}
           {listing.type === "goods" && listing.tradeEnabled ? <Badge label="Trade enabled" tone="success" /> : null}
@@ -93,7 +93,7 @@ export default function ProductDetailScreen() {
           <View style={styles.sellerText}>
             <Text style={styles.sellerName}>{seller?.displayName ?? "Community seller"}</Text>
             <Text style={styles.sellerMeta}>
-              {seller?.verificationState ?? "unverified"} - {seller?.rating ? `${seller.rating.toFixed(1)} rating` : "No rating yet"}
+              {seller?.verificationLabel ?? seller?.verificationState ?? "Unverified"} - {seller?.rating ? `${seller.rating.toFixed(1)} rating` : "No rating yet"}
             </Text>
           </View>
           <Feather name="chevron-right" size={20} color={colors.subtle} />
