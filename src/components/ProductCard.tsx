@@ -6,7 +6,7 @@ import { colors, radii, spacing } from "../theme/theme";
 import { formatRand } from "../utils/money";
 import { AssetSlotView } from "./AssetSlotView";
 import { DietaryTagBadge } from "./DietaryTagBadge";
-import { useFavorites } from "../contexts/FavoritesContext";
+import { FavoriteButton } from "./FavoriteButton";
 
 type Props = {
   listing: Listing;
@@ -16,7 +16,6 @@ type Props = {
 
 export function ProductCard({ listing, seller, compact }: Props) {
   const router = useRouter();
-  const { isFavorite, toggleFavorite } = useFavorites();
   const image = listing.images[0];
 
   return (
@@ -28,22 +27,7 @@ export function ProductCard({ listing, seller, compact }: Props) {
     >
       <View>
         {image ? <AssetSlotView slot={image.slot} uri={image.url} height={compact ? 116 : 132} rounded={radii.md} /> : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
-          onPress={(event) => {
-            event.stopPropagation();
-            toggleFavorite(listing.id);
-          }}
-          style={styles.favorite}
-        >
-          <Feather
-            name="heart"
-            size={18}
-            color={isFavorite(listing.id) ? colors.accent : colors.white}
-            fill={isFavorite(listing.id) ? colors.accent : colors.white}
-          />
-        </Pressable>
+        <FavoriteButton listingId={listing.id} unselectedColor={colors.white} style={styles.favorite} />
       </View>
       <View style={styles.body}>
         <Text numberOfLines={2} style={styles.title}>

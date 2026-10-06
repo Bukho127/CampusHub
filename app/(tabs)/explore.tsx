@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CategoryChip } from "../../src/components/CategoryChip";
@@ -34,7 +34,7 @@ export default function ExploreScreen() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [results, setResults] = useState<Listing[]>([]);
 
-  const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), []);
+  const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), [sellers]);
   const activeFilterCount = [condition, sellerType, minRating].filter(Boolean).length;
 
   useEffect(() => {
@@ -45,16 +45,21 @@ export default function ExploreScreen() {
     setCategoryId(params.category ?? "all");
   }, [params.category]);
 
-  useEffect(() => {
-    Promise.all([getCategories(), getSellers()]).then(([categories, sellers]) => {
-      setCategories(categories);
-      setSellers(sellers);
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-  useEffect(() => {
-    getListings({ query, categoryId, sort, condition, sellerType, minRating }).then(setResults);
-  }, [query, categoryId, sort, condition, sellerType, minRating]);
+      getCategories().then((items) => { if (active) setCategories(items); }).catch(() => { if (active) setCategories([]); });
+      getSellers().then((items) => { if (active) setSellers(items); }).catch(() => { if (active) setSellers([]); });
+      getListings({ query, categoryId, sort, condition, sellerType, minRating })
+        .then((items) => { if (active) setResults(items); })
+        .catch(() => { if (active) setResults([]); });
+
+      return () => {
+        active = false;
+      };
+    }, [query, categoryId, sort, condition, sellerType, minRating])
+  );
 
   function resetFilters() {
     setCondition(undefined);

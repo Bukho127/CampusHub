@@ -184,7 +184,7 @@ export default function SellerProfileScreen() {
             <View style={styles.starPicker}>
               {[1, 2, 3, 4, 5].map((value) => (
                 <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} out of 5 stars`} accessibilityState={{ selected: rating === value }} onPress={() => setRating(value)} style={styles.starButton}>
-                  <Feather name="star" size={28} color={value <= rating ? colors.accent : colors.line} fill={value <= rating ? colors.accent : "transparent"} />
+                  <Feather name="star" size={34} color={value <= rating ? colors.accent : colors.line} fill={value <= rating ? colors.accent : "transparent"} />
                 </Pressable>
               ))}
             </View>
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
     padding: spacing.md
   },
   formTitle: { color: colors.ink, fontSize: 15, fontWeight: "800" },
-  starPicker: { flexDirection: "row", gap: spacing.sm },
-  starButton: { minHeight: 40, minWidth: 36, alignItems: "center", justifyContent: "center" },
+  starPicker: { flexDirection: "row", gap: spacing.xs },
+  starButton: { alignItems: "center", justifyContent: "center", minHeight: 52, minWidth: 48 },
   reviewInput: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: radii.sm, borderWidth: 1, color: colors.ink, minHeight: 96, padding: spacing.md },
   actionButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radii.pill, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.lg },
   actionButtonText: { color: colors.white, fontSize: 13, fontWeight: "800" },
