@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AssetSlotView } from "../../src/components/AssetSlotView";
 import { CategoryChip } from "../../src/components/CategoryChip";
@@ -93,7 +93,7 @@ export default function HomeScreen() {
           <View style={styles.heroOverlay} />
           <View style={styles.heroBrand}>
             <View style={styles.logoBubble}>
-              <Text style={styles.logoText}>CS</Text>
+              <Image source={require("../../assets/campus-logo.png")} style={styles.logoImage} resizeMode="contain" />
             </View>
             <View>
               <Text style={styles.heroBrandTitle}>Community Store</Text>
@@ -224,11 +224,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     height: 39,
     justifyContent: "center",
+    padding: 6,
     width: 39
   },
-  logoText: {
-    color: colors.accent,
-    fontWeight: "900"
+  logoImage: {
+    height: "100%",
+    width: "100%"
   },
   heroBrandTitle: {
     color: colors.white,
