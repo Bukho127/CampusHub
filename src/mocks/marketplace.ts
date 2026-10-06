@@ -1,0 +1,211 @@
+import type { Category, CommunityPost, Listing, Seller } from "../models/marketplace";
+
+export const categories: Category[] = [
+  { id: "all", name: "See All" },
+  { id: "stationery", name: "Stationery" },
+  { id: "textbooks", name: "Textbooks" },
+  { id: "electronics", name: "Electronics" },
+  { id: "furniture", name: "Furniture" },
+  { id: "services", name: "Services" },
+  { id: "food", name: "Food & Bev" }
+];
+
+export const sellers: Seller[] = [
+  {
+    id: "seller-abdul",
+    displayName: "Abdul's Shop",
+    identityType: "student",
+    sellerType: "casual",
+    verificationState: "verified",
+    rating: 4.8,
+    reviewCount: 24,
+    location: "District Six Campus",
+    bio: "Student seller focused on affordable study supplies and second-hand essentials."
+  },
+  {
+    id: "seller-mama-afrika",
+    displayName: "Mama Afrika",
+    identityType: "vendor",
+    sellerType: "vendor",
+    verificationState: "pending",
+    rating: 4.6,
+    reviewCount: 18,
+    location: "Cape Town",
+    bio: "Local food vendor offering campus-friendly meals and snacks."
+  },
+  {
+    id: "seller-naledi",
+    displayName: "Naledi M.",
+    identityType: "student",
+    sellerType: "casual",
+    verificationState: "verified",
+    rating: 4.9,
+    reviewCount: 11,
+    location: "Paarl",
+    bio: "Final-year student selling electronics, books, and creative services."
+  }
+];
+
+export const listings: Listing[] = [
+  {
+    id: "notebook-2-quire",
+    type: "goods",
+    title: "2 Quire Notebook",
+    description: "A clean 152-page notebook for lecture notes, lab planning, or revision.",
+    categoryId: "stationery",
+    priceCents: 3599,
+    currency: "ZAR",
+    condition: "New",
+    quantityAvailable: 8,
+    location: "District Six Campus",
+    sellerId: "seller-abdul",
+    sellerType: "casual",
+    rating: 4.7,
+    reviewCount: 2,
+    images: [{ id: "img-notebook", slot: "notebook", alt: "Stack of notebooks" }],
+    status: "active",
+    createdAt: "2026-09-29T09:00:00.000Z",
+    negotiable: false,
+    tradeEnabled: false
+  },
+  {
+    id: "isijokojoko-bowl",
+    type: "goods",
+    title: "Isijokojoko",
+    description: "Fresh campus lunch bowl with roasted vegetables and a spicy sauce.",
+    categoryId: "food",
+    priceCents: 8599,
+    currency: "ZAR",
+    condition: "New",
+    quantityAvailable: 6,
+    location: "Cape Town",
+    sellerId: "seller-mama-afrika",
+    sellerType: "vendor",
+    rating: 4.5,
+    reviewCount: 7,
+    images: [{ id: "img-food", slot: "isijokojoko", alt: "Prepared food bowl" }],
+    status: "active",
+    createdAt: "2026-10-04T11:30:00.000Z",
+    negotiable: false,
+    tradeEnabled: false
+  },
+  {
+    id: "scientific-calculator",
+    type: "goods",
+    title: "Scientific Calculator",
+    description: "Good condition calculator for maths, accounting, and engineering modules.",
+    categoryId: "electronics",
+    priceCents: 35000,
+    currency: "ZAR",
+    condition: "Good",
+    quantityAvailable: 1,
+    location: "District Six Campus",
+    sellerId: "seller-naledi",
+    sellerType: "casual",
+    rating: 4.9,
+    reviewCount: 5,
+    images: [{ id: "img-calculator", slot: "calculator", alt: "Scientific calculator" }],
+    status: "active",
+    createdAt: "2026-10-01T14:10:00.000Z",
+    negotiable: true,
+    tradeEnabled: true
+  },
+  {
+    id: "java-textbook",
+    type: "goods",
+    title: "Java Textbook",
+    description: "Introductory Java programming textbook with light highlighting.",
+    categoryId: "textbooks",
+    priceCents: 45000,
+    currency: "ZAR",
+    condition: "Like New",
+    quantityAvailable: 1,
+    location: "Paarl",
+    sellerId: "seller-naledi",
+    sellerType: "casual",
+    rating: 4.9,
+    reviewCount: 3,
+    images: [{ id: "img-java", slot: "javaTextbook", alt: "Java textbook" }],
+    status: "active",
+    createdAt: "2026-09-24T08:20:00.000Z",
+    negotiable: true,
+    tradeEnabled: false
+  },
+  {
+    id: "iphone-12",
+    type: "goods",
+    title: "iPhone 12",
+    description: "Unlocked iPhone 12, 64GB, with cable and a clear case.",
+    categoryId: "electronics",
+    priceCents: 650000,
+    currency: "ZAR",
+    condition: "Good",
+    quantityAvailable: 1,
+    location: "Cape Town",
+    sellerId: "seller-abdul",
+    sellerType: "casual",
+    rating: 4.8,
+    reviewCount: 8,
+    images: [{ id: "img-phone", slot: "iphone12", alt: "iPhone 12" }],
+    status: "active",
+    createdAt: "2026-10-02T16:45:00.000Z",
+    negotiable: true,
+    tradeEnabled: false
+  },
+  {
+    id: "desk-chair",
+    type: "goods",
+    title: "Desk and Chair",
+    description: "Compact study desk and chair set for a student room.",
+    categoryId: "furniture",
+    priceCents: 90000,
+    currency: "ZAR",
+    condition: "Fair",
+    quantityAvailable: 1,
+    location: "District Six Campus",
+    sellerId: "seller-abdul",
+    sellerType: "casual",
+    reviewCount: 0,
+    images: [{ id: "img-desk", slot: "deskChair", alt: "Desk and chair" }],
+    status: "active",
+    createdAt: "2026-09-27T12:00:00.000Z",
+    negotiable: true,
+    tradeEnabled: true
+  },
+  {
+    id: "student-photography",
+    type: "service",
+    title: "Student Photography Session",
+    description: "Affordable portrait or event photo session for campus groups and societies.",
+    categoryId: "services",
+    priceCents: 30000,
+    currency: "ZAR",
+    location: "Cape Town",
+    sellerId: "seller-naledi",
+    sellerType: "casual",
+    rating: 5,
+    reviewCount: 6,
+    images: [{ id: "img-photo", slot: "photography", alt: "Photography service" }],
+    status: "active",
+    createdAt: "2026-10-03T13:15:00.000Z",
+    negotiable: false,
+    serviceMode: "enquiry"
+  }
+];
+
+export const communityPosts: CommunityPost[] = [
+  {
+    id: "student-market",
+    title: "Student Market Friday",
+    summary: "Bring second-hand books, clothing, and dorm essentials to the central courtyard.",
+    type: "event",
+    dateLabel: "Fri, 9 Oct"
+  },
+  {
+    id: "textbook-exchange",
+    title: "Textbook Exchange",
+    summary: "The library society is collecting course books for affordable resale.",
+    type: "announcement",
+    dateLabel: "This week"
+  }
+];
