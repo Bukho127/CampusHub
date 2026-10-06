@@ -39,9 +39,10 @@ function mapCategory(category: BackendCategory): Category {
 
 function mapSeller(seller: BackendUser): Seller {
   const verified = seller.vendorVerificationStatus === "verified" || seller.emailVerificationStatus === "verified";
+  const id = seller.id ?? seller._id ?? "";
 
   return {
-    id: seller._id,
+    id,
     displayName: seller.displayName,
     identityType: seller.identityType,
     sellerType: seller.role === "vendor" && seller.vendorVerificationStatus === "verified" ? "vendor" : "casual",
@@ -74,7 +75,7 @@ function mapImages(listing: BackendListing): ProductImage[] {
 
 function mapListing(listing: BackendListing): Listing {
   const seller = isBackendUser(listing.seller) ? mapSeller(listing.seller) : undefined;
-  const sellerId = isBackendUser(listing.seller) ? listing.seller._id : listing.seller;
+  const sellerId = isBackendUser(listing.seller) ? listing.seller.id ?? listing.seller._id ?? "" : listing.seller;
   const base = {
     id: listing._id,
     type: listing.type,

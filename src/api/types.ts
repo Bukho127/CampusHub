@@ -13,7 +13,11 @@ export type BackendCategory = {
 };
 
 export type BackendUser = {
-  _id: string;
+  _id?: string;
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   displayName: string;
   identityType: BackendIdentityType;
   role?: BackendRole;

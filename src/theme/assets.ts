@@ -12,8 +12,8 @@ export type AssetSlot =
   | "photography";
 
 export const assetSlots: Record<AssetSlot, ImageSourcePropType | null> = {
-  logo: null,
-  heroMarket: null,
+  logo: require("../../assets/campus-logo.png") as ImageSourcePropType,
+  heroMarket: require("../../assets/hero-market.png") as ImageSourcePropType,
   notebook: null,
   isijokojoko: null,
   calculator: null,
