@@ -1,10 +1,18 @@
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge } from "../../src/components/Badge";
-import { communityPosts } from "../../src/mocks/marketplace";
+import type { CommunityPost } from "../../src/models/marketplace";
+import { getCommunityPosts } from "../../src/services/communityService";
 import { colors, spacing } from "../../src/theme/theme";
 
 export default function CommunityScreen() {
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+
+  useEffect(() => {
+    getCommunityPosts().then(setCommunityPosts);
+  }, []);
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>

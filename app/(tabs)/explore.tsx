@@ -7,9 +7,8 @@ import { CategoryChip } from "../../src/components/CategoryChip";
 import { EmptyState } from "../../src/components/EmptyState";
 import { ProductCard } from "../../src/components/ProductCard";
 import { SearchBar } from "../../src/components/SearchBar";
-import { categories, sellers } from "../../src/mocks/marketplace";
-import type { Listing, ListingCondition, SellerType, SortMode } from "../../src/models/marketplace";
-import { getListings } from "../../src/services/productService";
+import type { Category, Listing, ListingCondition, Seller, SellerType, SortMode } from "../../src/models/marketplace";
+import { getCategories, getListings, getSellers } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
 
 const sortOptions: { id: SortMode; label: string }[] = [
@@ -31,6 +30,8 @@ export default function ExploreScreen() {
   const [sellerType, setSellerType] = useState<SellerType | undefined>();
   const [minRating, setMinRating] = useState<number | undefined>();
   const [showFilters, setShowFilters] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
   const [results, setResults] = useState<Listing[]>([]);
 
   const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), []);
@@ -43,6 +44,13 @@ export default function ExploreScreen() {
   useEffect(() => {
     setCategoryId(params.category ?? "all");
   }, [params.category]);
+
+  useEffect(() => {
+    Promise.all([getCategories(), getSellers()]).then(([categories, sellers]) => {
+      setCategories(categories);
+      setSellers(sellers);
+    });
+  }, []);
 
   useEffect(() => {
     getListings({ query, categoryId, sort, condition, sellerType, minRating }).then(setResults);

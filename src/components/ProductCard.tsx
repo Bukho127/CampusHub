@@ -26,7 +26,7 @@ export function ProductCard({ listing, seller, compact }: Props) {
       style={[styles.card, compact && styles.compactCard]}
     >
       <View>
-        {image ? <AssetSlotView slot={image.slot} height={compact ? 116 : 132} rounded={radii.md} /> : null}
+        {image ? <AssetSlotView slot={image.slot} uri={image.url} height={compact ? 116 : 132} rounded={radii.md} /> : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
@@ -52,7 +52,7 @@ export function ProductCard({ listing, seller, compact }: Props) {
           {listing.type === "goods" ? listing.condition : "Service"} - {listing.location}
         </Text>
         <Text numberOfLines={1} style={styles.seller}>
-          {seller?.displayName ?? "Community seller"}
+          {seller?.displayName ?? listing.seller?.displayName ?? "Community seller"}
         </Text>
         <View style={styles.footer}>
           <Text style={styles.price}>{formatRand(listing.priceCents)}</Text>

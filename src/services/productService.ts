@@ -1,56 +1,145 @@
-import { categories, listings, sellers } from "../mocks/marketplace";
-import type { Listing, ListingFilters, Seller } from "../models/marketplace";
+import { toAbsoluteApiUrl } from "../api/config";
+import { fetchCategories, fetchListingById, fetchListings, fetchListingsBySeller, fetchSellerById } from "../api/marketplaceApi";
+import type { BackendCategory, BackendListing, BackendUser } from "../api/types";
+import { categories as mockCategories, listings as mockListings, sellers as mockSellers } from "../mocks/marketplace";
+import type { Category, Listing, ListingFilters, ProductImage, Seller } from "../models/marketplace";
+import type { AssetSlot } from "../theme/assets";
 
 function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-function byQuery(listing: Listing, seller: Seller | undefined, query: string) {
+function mockByQuery(listing: Listing, seller: Seller | undefined, query: string) {
   const target = normalize(`${listing.title} ${listing.description} ${seller?.displayName ?? ""}`);
   return target.includes(normalize(query));
 }
 
-export async function getCategories() {
-  return categories;
+function isBackendUser(value: BackendListing["seller"]): value is BackendUser {
+  return typeof value === "object" && value !== null;
 }
 
-export async function getSellers() {
-  return sellers;
+function categoryToSlot(category: string, title: string): AssetSlot {
+  const target = normalize(`${category} ${title}`);
+
+  if (target.includes("food") || target.includes("isijokojoko")) return "isijokojoko";
+  if (target.includes("calculator")) return "calculator";
+  if (target.includes("java") || target.includes("textbook")) return "javaTextbook";
+  if (target.includes("iphone") || target.includes("phone")) return "iphone12";
+  if (target.includes("desk") || target.includes("chair") || target.includes("furniture")) return "deskChair";
+  if (target.includes("photo") || target.includes("service")) return "photography";
+  return "notebook";
 }
 
-export async function getSellerById(id: string) {
-  return sellers.find((seller) => seller.id === id) ?? null;
+function mapCategory(category: BackendCategory): Category {
+  return {
+    id: category.slug,
+    name: category.name
+  };
 }
 
-export async function getListingById(id: string) {
-  return listings.find((listing) => listing.id === id) ?? null;
+function mapSeller(seller: BackendUser): Seller {
+  const verified = seller.vendorVerificationStatus === "verified" || seller.emailVerificationStatus === "verified";
+
+  return {
+    id: seller._id,
+    displayName: seller.displayName,
+    identityType: seller.identityType,
+    sellerType: seller.role === "vendor" && seller.vendorVerificationStatus === "verified" ? "vendor" : "casual",
+    verificationState: verified ? "verified" : seller.vendorVerificationStatus ?? seller.emailVerificationStatus ?? "unverified",
+    rating: seller.rating ?? undefined,
+    reviewCount: seller.reviewCount ?? 0,
+    location: seller.location ?? "Campus community",
+    bio: "Community Store seller profile. Public contact details stay private until trusted workflows are integrated."
+  };
 }
 
-export async function getListings(filters: ListingFilters = {}) {
-  let results = listings.filter((listing) => listing.status === "active");
+function mapImages(listing: BackendListing): ProductImage[] {
+  if (!listing.images.length) {
+    return [
+      {
+        id: `${listing._id}-placeholder`,
+        slot: categoryToSlot(listing.category, listing.title),
+        alt: listing.title
+      }
+    ];
+  }
+
+  return listing.images.map((image, index) => ({
+    id: `${listing._id}-image-${index}`,
+    slot: categoryToSlot(listing.category, listing.title),
+    url: image.url && image.size > 0 ? toAbsoluteApiUrl(image.url) : undefined,
+    alt: image.alt || listing.title
+  }));
+}
+
+function mapListing(listing: BackendListing): Listing {
+  const seller = isBackendUser(listing.seller) ? mapSeller(listing.seller) : undefined;
+  const sellerId = isBackendUser(listing.seller) ? listing.seller._id : listing.seller;
+  const base = {
+    id: listing._id,
+    type: listing.type,
+    title: listing.title,
+    description: listing.description,
+    categoryId: listing.category,
+    priceCents: listing.priceCents,
+    currency: listing.currency,
+    location: listing.location,
+    sellerId,
+    seller,
+    sellerType: listing.sellerType,
+    rating: listing.rating ?? undefined,
+    reviewCount: listing.reviewCount ?? 0,
+    images: mapImages(listing),
+    status: listing.status,
+    createdAt: listing.createdAt,
+    negotiable: listing.negotiable
+  };
+
+  if (listing.type === "service") {
+    return {
+      ...base,
+      type: "service",
+      serviceMode: listing.serviceMode ?? "enquiry"
+    };
+  }
+
+  return {
+    ...base,
+    type: "goods",
+    condition: listing.condition ?? "Good",
+    quantityAvailable: listing.quantityAvailable ?? 0,
+    tradeEnabled: listing.tradeEnabled
+  };
+}
+
+function toApiQuery(filters: ListingFilters) {
+  return {
+    q: filters.query,
+    category: filters.categoryId === "all" ? undefined : filters.categoryId,
+    minPrice: filters.minPriceCents,
+    maxPrice: filters.maxPriceCents,
+    condition: filters.condition,
+    location: filters.location,
+    sellerType: filters.sellerType,
+    minRating: filters.minRating,
+    sort: filters.sort,
+    limit: 50
+  };
+}
+
+function filterMockListings(filters: ListingFilters = {}) {
+  let results = mockListings.filter((listing) => listing.status === "active");
 
   if (filters.query) {
-    results = results.filter((listing) => byQuery(listing, sellers.find((seller) => seller.id === listing.sellerId), filters.query ?? ""));
+    results = results.filter((listing) => mockByQuery(listing, mockSellers.find((seller) => seller.id === listing.sellerId), filters.query ?? ""));
   }
 
   if (filters.categoryId && filters.categoryId !== "all") {
     results = results.filter((listing) => listing.categoryId === filters.categoryId);
   }
 
-  if (filters.minPriceCents !== undefined) {
-    results = results.filter((listing) => listing.priceCents >= (filters.minPriceCents ?? 0));
-  }
-
-  if (filters.maxPriceCents !== undefined) {
-    results = results.filter((listing) => listing.priceCents <= (filters.maxPriceCents ?? Number.MAX_SAFE_INTEGER));
-  }
-
   if (filters.condition) {
     results = results.filter((listing) => listing.type === "goods" && listing.condition === filters.condition);
-  }
-
-  if (filters.location) {
-    results = results.filter((listing) => normalize(listing.location).includes(normalize(filters.location ?? "")));
   }
 
   if (filters.sellerType) {
@@ -63,24 +152,69 @@ export async function getListings(filters: ListingFilters = {}) {
 
   switch (filters.sort) {
     case "newest":
-      results = [...results].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-      break;
+      return [...results].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
     case "priceLow":
-      results = [...results].sort((a, b) => a.priceCents - b.priceCents);
-      break;
+      return [...results].sort((a, b) => a.priceCents - b.priceCents);
     case "priceHigh":
-      results = [...results].sort((a, b) => b.priceCents - a.priceCents);
-      break;
+      return [...results].sort((a, b) => b.priceCents - a.priceCents);
     case "rating":
-      results = [...results].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
-      break;
+      return [...results].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
     default:
-      results = [...results].sort((a, b) => Number(Boolean(b.rating)) - Number(Boolean(a.rating)));
+      return [...results].sort((a, b) => Number(Boolean(b.rating)) - Number(Boolean(a.rating)));
   }
+}
 
-  return results;
+function withMockFallback<T>(request: Promise<T>, fallback: () => T) {
+  return request.catch(() => fallback());
+}
+
+export async function getCategories() {
+  return withMockFallback(
+    fetchCategories().then((items) => [{ id: "all", name: "See All" }, ...items.map(mapCategory)]),
+    () => mockCategories
+  );
+}
+
+export async function getSellers() {
+  return withMockFallback(
+    fetchListings({ limit: 50 }).then((items) => {
+      const sellers = new Map<string, Seller>();
+      items.forEach((item) => {
+        if (isBackendUser(item.seller)) {
+          const seller = mapSeller(item.seller);
+          sellers.set(seller.id, seller);
+        }
+      });
+      return [...sellers.values()];
+    }),
+    () => mockSellers
+  );
+}
+
+export async function getSellerById(id: string) {
+  return withMockFallback(
+    fetchSellerById(id).then(mapSeller),
+    () => mockSellers.find((seller) => seller.id === id) ?? null
+  );
+}
+
+export async function getListingById(id: string) {
+  return withMockFallback(
+    fetchListingById(id).then(mapListing),
+    () => mockListings.find((listing) => listing.id === id) ?? null
+  );
+}
+
+export async function getListings(filters: ListingFilters = {}) {
+  return withMockFallback(
+    fetchListings(toApiQuery(filters)).then((items) => items.map(mapListing)),
+    () => filterMockListings(filters)
+  );
 }
 
 export async function getListingsBySeller(sellerId: string) {
-  return listings.filter((listing) => listing.sellerId === sellerId && listing.status === "active");
+  return withMockFallback(
+    fetchListingsBySeller(sellerId).then((items) => items.map(mapListing)),
+    () => mockListings.filter((listing) => listing.sellerId === sellerId && listing.status === "active")
+  );
 }

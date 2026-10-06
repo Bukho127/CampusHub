@@ -27,7 +27,7 @@ export default function ProductDetailScreen() {
       if (!id) return;
       const found = await getListingById(id);
       setListing(found);
-      setSeller(found ? await getSellerById(found.sellerId) : null);
+      setSeller(found ? found.seller ?? (await getSellerById(found.sellerId)) : null);
       setSimilar(found ? (await getListings({ categoryId: found.categoryId })).filter((item) => item.id !== found.id).slice(0, 2) : []);
       setLoaded(true);
     }
@@ -60,7 +60,7 @@ export default function ProductDetailScreen() {
           </Pressable>
         </View>
 
-        {image ? <AssetSlotView slot={image.slot} height={300} rounded={radii.lg} /> : null}
+        {image ? <AssetSlotView slot={image.slot} uri={image.url} height={300} rounded={radii.lg} /> : null}
 
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>

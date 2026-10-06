@@ -28,6 +28,7 @@ export type Category = {
 export type ProductImage = {
   id: string;
   slot: AssetSlot;
+  url?: string;
   alt: string;
 };
 
@@ -41,6 +42,7 @@ type ListingBase = {
   currency: "ZAR";
   location: string;
   sellerId: string;
+  seller?: Seller;
   sellerType: SellerType;
   rating?: number;
   reviewCount: number;

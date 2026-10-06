@@ -4,11 +4,16 @@ import { colors, radii } from "../theme/theme";
 
 type Props = {
   slot: AssetSlot;
+  uri?: string;
   height?: number;
   rounded?: number;
 };
 
-export function AssetSlotView({ slot, height = 132, rounded = radii.md }: Props) {
+export function AssetSlotView({ slot, uri, height = 132, rounded = radii.md }: Props) {
+  if (uri) {
+    return <Image source={{ uri }} style={[styles.image, { height, borderRadius: rounded }]} resizeMode="cover" />;
+  }
+
   const source = assetSlots[slot];
 
   if (source) {

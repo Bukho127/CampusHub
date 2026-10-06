@@ -32,6 +32,20 @@ app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
 app.use("/uploads", express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
 
+app.get("/", (_req, res) => {
+  sendSuccess(res, {
+    name: "Community Store API",
+    health: "/health",
+    apiBase: "/api",
+    routes: {
+      categories: "/api/categories",
+      listings: "/api/listings",
+      auth: "/api/auth",
+      communityPosts: "/api/community-posts"
+    }
+  });
+});
+
 app.get("/health", (_req, res) => {
   sendSuccess(res, { status: "ok" }, "Community Store API is healthy");
 });

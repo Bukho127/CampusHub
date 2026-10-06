@@ -8,20 +8,34 @@ import { CategoryChip } from "../../src/components/CategoryChip";
 import { ProductCard } from "../../src/components/ProductCard";
 import { SearchBar } from "../../src/components/SearchBar";
 import { SectionHeader } from "../../src/components/SectionHeader";
-import { categories, communityPosts, sellers } from "../../src/mocks/marketplace";
-import type { Listing } from "../../src/models/marketplace";
-import { getListings } from "../../src/services/productService";
+import type { Category, CommunityPost, Listing, Seller } from "../../src/models/marketplace";
+import { getCommunityPosts } from "../../src/services/communityService";
+import { getCategories, getListings, getSellers } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
 
 export default function HomeScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [recent, setRecent] = useState<Listing[]>([]);
 
   useEffect(() => {
-    getListings({ sort: "rating" }).then((items) => setFeatured(items.slice(0, 4)));
-    getListings({ sort: "newest" }).then((items) => setRecent(items.slice(0, 4)));
+    Promise.all([
+      getCategories(),
+      getCommunityPosts(),
+      getSellers(),
+      getListings({ sort: "rating" }),
+      getListings({ sort: "newest" })
+    ]).then(([categories, posts, sellers, featuredItems, recentItems]) => {
+      setCategories(categories);
+      setCommunityPosts(posts);
+      setSellers(sellers);
+      setFeatured(featuredItems.slice(0, 4));
+      setRecent(recentItems.slice(0, 4));
+    });
   }, []);
 
   const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), []);
