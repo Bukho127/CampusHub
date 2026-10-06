@@ -6,13 +6,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { fetchCategories } from "../../src/api/marketplaceApi";
 import { createListingApi, type ListingFormPayload } from "../../src/api/listingUploadApi";
-import type { BackendCategory, BackendCondition, BackendListingType } from "../../src/api/types";
+import type { BackendCategory, BackendCondition, BackendDietaryTag, BackendListingType } from "../../src/api/types";
 import { CategoryChip } from "../../src/components/CategoryChip";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { categories as fallbackCategories } from "../../src/mocks/marketplace";
 import { colors, radii, spacing } from "../../src/theme/theme";
 
 const conditions: BackendCondition[] = ["New", "Like New", "Good", "Fair"];
+const dietaryOptions: Array<{ value: BackendDietaryTag; label: string }> = [
+  { value: "healthy", label: "Healthy" },
+  { value: "vegan", label: "Vegan" },
+  { value: "vegetarian", label: "Vegetarian" },
+  { value: "halal", label: "Halal" }
+];
 const listingTypes: Array<{ value: BackendListingType; label: string }> = [
   { value: "goods", label: "Item" },
   { value: "service", label: "Service" }
@@ -36,6 +42,7 @@ export default function SellScreen() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<BackendCondition>("Good");
+  const [dietaryTags, setDietaryTags] = useState<BackendDietaryTag[]>([]);
   const [quantity, setQuantity] = useState("1");
   const [location, setLocation] = useState(user?.location ?? "");
   const [negotiable, setNegotiable] = useState(false);
@@ -141,7 +148,7 @@ export default function SellScreen() {
       priceCents: Math.round(priceValue * 100),
       location: location.trim(),
       negotiable,
-      ...(type === "goods" ? { ...(!isFoodCategory ? { condition } : {}), quantityAvailable: quantityValue, tradeEnabled } : { serviceMode: "enquiry" }),
+      ...(type === "goods" ? { ...(!isFoodCategory ? { condition } : {}), ...(isFoodCategory && dietaryTags.length ? { dietaryTags } : {}), quantityAvailable: quantityValue, tradeEnabled } : { serviceMode: "enquiry" }),
       ...(images.length ? { images } : {})
     };
 
@@ -154,6 +161,7 @@ export default function SellScreen() {
       setDescription("");
       setPrice("");
       setCondition("Good");
+      setDietaryTags([]);
       setQuantity("1");
       setLocation(user?.location ?? "");
       setNegotiable(false);
@@ -201,7 +209,10 @@ export default function SellScreen() {
         <Text style={styles.label}>Listing type</Text>
         <View style={styles.segmented}>
           {listingTypes.map((option) => (
-            <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: type === option.value }} onPress={() => setType(option.value)} style={[styles.segment, type === option.value && styles.segmentSelected]}>
+            <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: type === option.value }} onPress={() => {
+              setType(option.value);
+              if (option.value === "service") setDietaryTags([]);
+            }} style={[styles.segment, type === option.value && styles.segmentSelected]}>
               <Text style={[styles.segmentText, type === option.value && styles.segmentTextSelected]}>{option.label}</Text>
             </Pressable>
           ))}
@@ -236,9 +247,29 @@ export default function SellScreen() {
         {categoriesError ? <Text style={styles.inlineError}>{categoriesError}</Text> : null}
         <ScrollView horizontal contentContainerStyle={styles.categoryRow} showsHorizontalScrollIndicator={false}>
           {categories.map((item) => (
-            <CategoryChip key={item._id} label={item.name} selected={category === item.slug} onPress={() => setCategory(item.slug)} />
+            <CategoryChip key={item._id} label={item.name} selected={category === item.slug} onPress={() => {
+              setCategory(item.slug);
+              if (!item.name.toLowerCase().includes("food")) setDietaryTags([]);
+            }} />
           ))}
         </ScrollView>
+
+        {type === "goods" && isFoodCategory ? (
+          <>
+            <Text style={styles.label}>Food attributes</Text>
+            <View style={styles.optionRow}>
+              {dietaryOptions.map((option) => (
+                <CategoryChip
+                  key={option.value}
+                  label={option.label}
+                  selected={dietaryTags.includes(option.value)}
+                  onPress={() => setDietaryTags((current) => current.includes(option.value) ? current.filter((tag) => tag !== option.value) : [...current, option.value])}
+                />
+              ))}
+            </View>
+            <Text style={styles.helper}>These are seller-provided food attributes. Confirm ingredients and allergens with the seller.</Text>
+          </>
+        ) : null}
 
         <Text style={styles.label}>Price (ZAR)</Text>
         <View style={styles.priceInputWrap}>
@@ -254,6 +285,10 @@ export default function SellScreen() {
                 <CategoryChip key={option} label={option} selected={condition === option} onPress={() => setCondition(option)} />
               ))}
             </View>
+          </>
+        ) : null}
+        {type === "goods" ? (
+          <>
             <Text style={styles.label}>Quantity available</Text>
             <TextInput keyboardType="number-pad" onChangeText={setQuantity} placeholder="1" placeholderTextColor={colors.subtle} style={styles.input} value={quantity} />
           </>

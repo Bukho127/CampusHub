@@ -5,6 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AssetSlotView } from "../../src/components/AssetSlotView";
 import { Badge } from "../../src/components/Badge";
+import { DietaryTagBadge } from "../../src/components/DietaryTagBadge";
+import { VerificationBadge } from "../../src/components/VerificationBadge";
 import { EmptyState } from "../../src/components/EmptyState";
 import { ProductCard } from "../../src/components/ProductCard";
 import { useFavorites } from "../../src/contexts/FavoritesContext";
@@ -77,6 +79,7 @@ export default function ProductDetailScreen() {
           <Badge label={listing.location} />
           {listing.negotiable ? <Badge label="Negotiable" tone="accent" /> : null}
           {listing.type === "goods" && listing.tradeEnabled ? <Badge label="Trade enabled" tone="success" /> : null}
+          {listing.type === "goods" ? listing.dietaryTags?.map((tag) => <DietaryTagBadge key={tag} tag={tag} />) : null}
         </View>
 
         <Text style={styles.sectionTitle}>Description</Text>
@@ -92,9 +95,10 @@ export default function ProductDetailScreen() {
           </View>
           <View style={styles.sellerText}>
             <Text style={styles.sellerName}>{seller?.displayName ?? "Community seller"}</Text>
-            <Text style={styles.sellerMeta}>
-              {seller?.verificationLabel ?? seller?.verificationState ?? "Unverified"} - {seller?.rating ? `${seller.rating.toFixed(1)} rating` : "No rating yet"}
-            </Text>
+            <View style={styles.sellerTrust}>
+              {seller ? <VerificationBadge verified={seller.verificationState === "verified"} label={seller.verificationLabel ?? seller.verificationState} /> : null}
+              <Text style={styles.sellerMeta}>{seller?.rating ? `${seller.rating.toFixed(1)} rating` : "No rating yet"}</Text>
+            </View>
           </View>
           <Feather name="chevron-right" size={20} color={colors.subtle} />
         </Pressable>
@@ -223,6 +227,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 3,
     textTransform: "capitalize"
+  },
+  sellerTrust: {
+    alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 5
   },
   actions: {
     flexDirection: "row",

@@ -3,6 +3,7 @@ import type { AssetSlot } from "../theme/assets";
 export type UserType = "student" | "faculty" | "resident" | "vendor";
 export type VerificationState = "unverified" | "pending" | "verified";
 export type ListingCondition = "New" | "Like New" | "Good" | "Fair";
+export type DietaryTag = "healthy" | "vegan" | "vegetarian" | "halal";
 export type SellerType = "casual" | "vendor";
 export type ListingStatus = "active" | "sold" | "draft";
 export type ListingType = "goods" | "service";
@@ -56,6 +57,7 @@ type ListingBase = {
 export type GoodsListing = ListingBase & {
   type: "goods";
   condition?: ListingCondition;
+  dietaryTags?: DietaryTag[];
   quantityAvailable: number;
   tradeEnabled: boolean;
 };

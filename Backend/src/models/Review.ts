@@ -6,11 +6,11 @@ const reviewSchema = new Schema(
     seller: { type: Schema.Types.ObjectId, ref: "User", required: true },
     listing: { type: Schema.Types.ObjectId, ref: "Listing" },
     rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: { type: String, trim: true }
+    comment: { type: String, required: true, trim: true, maxlength: 1200 }
   },
   { timestamps: true }
 );
 
-reviewSchema.index({ reviewer: 1, listing: 1 }, { unique: true, sparse: true });
+reviewSchema.index({ reviewer: 1, seller: 1 }, { unique: true });
 
 export const Review = model("Review", reviewSchema);

@@ -5,6 +5,7 @@ import type { Listing, Seller } from "../models/marketplace";
 import { colors, radii, spacing } from "../theme/theme";
 import { formatRand } from "../utils/money";
 import { AssetSlotView } from "./AssetSlotView";
+import { DietaryTagBadge } from "./DietaryTagBadge";
 import { useFavorites } from "../contexts/FavoritesContext";
 
 type Props = {
@@ -51,6 +52,11 @@ export function ProductCard({ listing, seller, compact }: Props) {
         <Text numberOfLines={1} style={styles.meta}>
           {listing.type === "goods" ? listing.condition ?? (listing.categoryId.toLowerCase().includes("food") ? "Food & Bev" : "Goods") : "Service"} - {listing.location}
         </Text>
+        {listing.type === "goods" && listing.dietaryTags?.length ? (
+          <View style={styles.dietaryTags}>
+            {listing.dietaryTags.map((tag) => <DietaryTagBadge key={tag} tag={tag} />)}
+          </View>
+        ) : null}
         <Text numberOfLines={1} style={styles.seller}>
           {seller?.displayName ?? listing.seller?.displayName ?? "Community seller"}
         </Text>
@@ -110,6 +116,11 @@ const styles = StyleSheet.create({
   seller: {
     color: colors.subtle,
     fontSize: 12
+  },
+  dietaryTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 5
   },
   footer: {
     alignItems: "center",

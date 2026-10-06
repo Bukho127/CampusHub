@@ -5,6 +5,7 @@ export type BackendSellerType = "casual" | "vendor";
 export type BackendListingType = "goods" | "service";
 export type BackendListingStatus = "active" | "sold" | "draft";
 export type BackendCondition = "New" | "Like New" | "Good" | "Fair";
+export type BackendDietaryTag = "healthy" | "vegan" | "vegetarian" | "halal";
 
 export type BackendCategory = {
   _id: string;
@@ -50,6 +51,7 @@ export type BackendListing = {
   priceCents: number;
   currency: "ZAR";
   condition?: BackendCondition;
+  dietaryTags?: BackendDietaryTag[];
   quantityAvailable?: number;
   serviceMode?: "enquiry";
   images: BackendImage[];
@@ -61,6 +63,14 @@ export type BackendListing = {
   tradeEnabled: boolean;
   rating?: number | null;
   reviewCount?: number;
+  createdAt: string;
+};
+
+export type BackendReview = {
+  _id: string;
+  reviewer: { _id: string; displayName: string };
+  rating: number;
+  comment: string;
   createdAt: string;
 };
 

@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "crypto";
 import type { Request, Response } from "express";
 import { env } from "../config/env";
 import { Listing } from "../models/Listing";
+import { Review } from "../models/Review";
 import { User } from "../models/User";
 import { sendCampusVerificationEmail } from "../services/emailService";
 import { AppError } from "../utils/AppError";

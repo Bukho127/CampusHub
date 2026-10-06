@@ -6,6 +6,7 @@ import { communityRouter } from "./communityRoutes";
 import { favoriteRouter } from "./favoriteRoutes";
 import { listingRouter } from "./listingRoutes";
 import { reportRouter } from "./reportRoutes";
+import { reviewRouter } from "./reviewRoutes";
 import { sellerRouter } from "./sellerRoutes";
 import { userRouter } from "./userRoutes";
 
@@ -19,4 +20,5 @@ apiRouter.use("/listings", listingRouter);
 apiRouter.use("/favorites", favoriteRouter);
 apiRouter.use("/community-posts", communityRouter);
 apiRouter.use("/reports", reportRouter);
+apiRouter.use("/reviews", reviewRouter);
 apiRouter.use("/admin", adminRouter);

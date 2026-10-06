@@ -116,6 +116,7 @@ function mapListing(listing: BackendListing): Listing {
     ...base,
     type: "goods",
     condition: listing.condition ?? "Good",
+      dietaryTags: listing.dietaryTags ?? [],
     quantityAvailable: listing.quantityAvailable ?? 0,
     tradeEnabled: listing.tradeEnabled
   };

@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { BackendListing } from "./types";
+import type { BackendDietaryTag, BackendListing } from "./types";
 
 export type ListingFormPayload = {
   type: "goods" | "service";
@@ -8,6 +8,7 @@ export type ListingFormPayload = {
   category: string;
   priceCents: number;
   condition?: string;
+  dietaryTags?: BackendDietaryTag[];
   quantityAvailable?: number;
   serviceMode?: "enquiry";
   location: string;
@@ -25,10 +26,11 @@ function buildListingFormData(payload: ListingFormPayload) {
   const formData = new FormData();
 
   Object.entries(payload).forEach(([key, value]) => {
-    if (key === "images" || value === undefined) return;
+    if (key === "images" || key === "dietaryTags" || value === undefined) return;
     formData.append(key, String(value));
   });
 
+  payload.dietaryTags?.forEach((tag) => formData.append("dietaryTags", tag));
   payload.images?.forEach((image) => {
     formData.append("images", image as unknown as Blob);
   });
