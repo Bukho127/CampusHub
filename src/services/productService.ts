@@ -165,57 +165,41 @@ function filterMockListings(filters: ListingFilters = {}) {
   }
 }
 
-function withMockFallback<T>(request: Promise<T>, fallback: () => T) {
-  return request.catch(() => fallback());
-}
-
 export async function getCategories() {
-  return withMockFallback(
-    fetchCategories().then((items) => [{ id: "all", name: "See All" }, ...items.map(mapCategory)]),
-    () => mockCategories
-  );
+  const items = await fetchCategories();
+  return [{ id: "all", name: "See All" }, ...items.map(mapCategory)];
 }
 
 export async function getSellers() {
-  return withMockFallback(
-    fetchListings({ limit: 50 }).then((items) => {
-      const sellers = new Map<string, Seller>();
-      items.forEach((item) => {
-        if (isBackendUser(item.seller)) {
-          const seller = mapSeller(item.seller);
-          sellers.set(seller.id, seller);
-        }
-      });
-      return [...sellers.values()];
-    }),
-    () => mockSellers
-  );
+  const items = await fetchListings({ limit: 50 });
+  const sellers = new Map<string, Seller>();
+
+  items.forEach((item) => {
+    if (isBackendUser(item.seller)) {
+      const seller = mapSeller(item.seller);
+      sellers.set(seller.id, seller);
+    }
+  });
+
+  return [...sellers.values()];
 }
 
 export async function getSellerById(id: string) {
-  return withMockFallback(
-    fetchSellerById(id).then(mapSeller),
-    () => mockSellers.find((seller) => seller.id === id) ?? null
-  );
+  const seller = await fetchSellerById(id);
+  return mapSeller(seller);
 }
 
 export async function getListingById(id: string) {
-  return withMockFallback(
-    fetchListingById(id).then(mapListing),
-    () => mockListings.find((listing) => listing.id === id) ?? null
-  );
+  const listing = await fetchListingById(id);
+  return mapListing(listing);
 }
 
 export async function getListings(filters: ListingFilters = {}) {
-  return withMockFallback(
-    fetchListings(toApiQuery(filters)).then((items) => items.map(mapListing)),
-    () => filterMockListings(filters)
-  );
+  const items = await fetchListings(toApiQuery(filters));
+  return items.map(mapListing);
 }
 
 export async function getListingsBySeller(sellerId: string) {
-  return withMockFallback(
-    fetchListingsBySeller(sellerId).then((items) => items.map(mapListing)),
-    () => mockListings.filter((listing) => listing.sellerId === sellerId && listing.status === "active")
-  );
+  const items = await fetchListingsBySeller(sellerId);
+  return items.map(mapListing);
 }

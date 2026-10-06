@@ -1,10 +1,22 @@
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+function getExpoHost() {
+  const hostUri = Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.hostUri ?? "localhost:8081";
+  return hostUri.split(":")[0];
+}
+
 function defaultBaseUrl() {
+  const expoHost = getExpoHost();
+
   if (Platform.OS === "android") {
-    return "http://10.0.2.2:5000/api";
+    return `http://${expoHost === "localhost" ? "10.0.2.2" : expoHost}:5000/api`;
+  }
+
+  if (expoHost && expoHost !== "localhost") {
+    return `http://${expoHost}:5000/api`;
   }
 
   return "http://localhost:5000/api";

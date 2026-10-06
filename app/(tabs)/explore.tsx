@@ -83,6 +83,7 @@ export default function ExploreScreen() {
         data={categories}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <CategoryChip label={item.name} selected={categoryId === item.id} onPress={() => setCategoryId(item.id)} />}
+        style={styles.categoryList}
         contentContainerStyle={styles.categories}
         showsHorizontalScrollIndicator={false}
       />
@@ -167,9 +168,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg
   },
   categories: {
+    alignItems: "center",
     gap: 10,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg
+    paddingHorizontal: spacing.lg
+  },
+  categoryList: {
+    flexGrow: 0,
+    height: 64
   },
   filters: {
     borderBottomColor: colors.line,

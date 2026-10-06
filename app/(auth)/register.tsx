@@ -4,6 +4,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../src/api/client";
+import { API_BASE_URL } from "../../src/api/config";
 import type { BackendIdentityType } from "../../src/api/types";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { colors, radii, spacing } from "../../src/theme/theme";
@@ -55,7 +56,11 @@ export default function RegisterScreen() {
       await register({ firstName: firstName.trim(), lastName: lastName.trim(), email, password, identityType });
       router.replace("/(tabs)");
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Could not register. Check that the API server is running.");
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : `Could not reach the API at ${API_BASE_URL}. ${caught instanceof Error ? caught.message : "Unknown network error."}`
+      );
     } finally {
       setIsSubmitting(false);
     }

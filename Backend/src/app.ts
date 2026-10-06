@@ -9,12 +9,21 @@ import { errorHandler, notFound } from "./middleware/errorHandler";
 import { apiRouter } from "./routes";
 import { sendSuccess } from "./utils/apiResponse";
 
+const allowedOrigins = env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean);
+
 export const app = express();
 
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins === true || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true
   })
 );

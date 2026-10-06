@@ -14,7 +14,6 @@ function mapCommunityPost(post: BackendCommunityPost): CommunityPost {
 }
 
 export async function getCommunityPosts() {
-  return fetchCommunityPosts()
-    .then((posts) => posts.map(mapCommunityPost))
-    .catch(() => mockCommunityPosts);
+  const posts = await fetchCommunityPosts();
+  return posts.map(mapCommunityPost);
 }

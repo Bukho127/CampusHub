@@ -8,6 +8,7 @@ import { CategoryChip } from "../../src/components/CategoryChip";
 import { ProductCard } from "../../src/components/ProductCard";
 import { SearchBar } from "../../src/components/SearchBar";
 import { SectionHeader } from "../../src/components/SectionHeader";
+import { useAuth } from "../../src/contexts/AuthContext";
 import type { Category, CommunityPost, Listing, Seller } from "../../src/models/marketplace";
 import { getCommunityPosts } from "../../src/services/communityService";
 import { getCategories, getListings, getSellers } from "../../src/services/productService";
@@ -15,6 +16,8 @@ import { colors, radii, spacing } from "../../src/theme/theme";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const greetingName = user?.firstName?.trim() || user?.displayName?.trim().split(/\s+/)[0] || "there";
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
@@ -49,7 +52,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
           <View>
-            <Text style={styles.greeting}>Hi, Khanya</Text>
+            <Text style={styles.greeting}>Hi, {greetingName}</Text>
             <Text style={styles.subGreeting}>Find campus deals near you</Text>
           </View>
           <View style={styles.headerActions}>
