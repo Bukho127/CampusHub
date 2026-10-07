@@ -19,7 +19,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow CampusHub to access your camera to scan SnapScan QR codes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
