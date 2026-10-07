@@ -10,7 +10,7 @@ import { formatRand } from "../src/utils/money";
 
 export default function CartScreen() {
   const router = useRouter();
-  const { addItem, clearCart, decrementItem, itemCount, items, removeItem, subtotalCents } = useCart();
+  const { addItem, clearCart, decrementItem, getAvailableQuantity, itemCount, items, removeItem, subtotalCents } = useCart();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -29,6 +29,8 @@ export default function CartScreen() {
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             {items.map(({ listing, quantity }) => {
               const image = listing.images[0];
+              const availableQuantity = getAvailableQuantity(listing);
+              const atQuantityLimit = listing.type === "goods" && quantity >= availableQuantity;
               return (
                 <View key={listing.id} style={styles.item}>
                   <Pressable accessibilityRole="button" onPress={() => router.push(`/product/${listing.id}`)} style={styles.imageWrap}>
@@ -38,7 +40,10 @@ export default function CartScreen() {
                     <View style={styles.itemHeader}>
                       <View style={styles.itemText}>
                         <Text numberOfLines={2} style={styles.itemTitle}>{listing.title}</Text>
-                        <Text style={styles.itemMeta}>{listing.location}</Text>
+                        <Text style={styles.itemMeta}>
+                          {listing.location}
+                          {listing.type === "goods" ? ` - ${availableQuantity} available` : ""}
+                        </Text>
                       </View>
                       <Pressable accessibilityLabel={`Remove ${listing.title}`} onPress={() => removeItem(listing.id)} style={styles.removeButton}>
                         <Feather name="x" size={18} color={colors.muted} />
@@ -51,8 +56,13 @@ export default function CartScreen() {
                           <Feather name="minus" size={16} color={colors.ink} />
                         </Pressable>
                         <Text style={styles.quantity}>{quantity}</Text>
-                        <Pressable accessibilityLabel="Increase quantity" onPress={() => addItem(listing)} style={styles.stepperButton}>
-                          <Feather name="plus" size={16} color={colors.ink} />
+                        <Pressable
+                          accessibilityLabel={atQuantityLimit ? `Only ${availableQuantity} available` : "Increase quantity"}
+                          disabled={atQuantityLimit}
+                          onPress={() => addItem(listing)}
+                          style={[styles.stepperButton, atQuantityLimit && styles.stepperButtonDisabled]}
+                        >
+                          <Feather name="plus" size={16} color={atQuantityLimit ? colors.subtle : colors.ink} />
                         </Pressable>
                       </View>
                     </View>
@@ -71,10 +81,10 @@ export default function CartScreen() {
               <Text style={styles.summaryLabel}>Subtotal</Text>
               <Text style={styles.summaryTotal}>{formatRand(subtotalCents)}</Text>
             </View>
-            <Pressable accessibilityRole="button" disabled style={[styles.checkoutButton, styles.disabled]}>
-              <Text style={styles.checkoutText}>Checkout coming soon</Text>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/checkout")} style={styles.checkoutButton}>
+              <Text style={styles.checkoutText}>Checkout</Text>
             </Pressable>
-            <Text style={styles.note}>Payments, delivery, and booking confirmation are not processed yet.</Text>
+            <Text style={styles.note}>Choose a simulated CampusHub payment method before placing the order.</Text>
           </View>
         </>
       ) : (
@@ -111,8 +121,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.ink,
-    fontSize: 23,
-    fontWeight: "900"
+    fontSize: 22,
+    fontWeight: "700"
   },
   content: {
     gap: spacing.md,
@@ -126,7 +136,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: spacing.md,
-    padding: spacing.sm
+    padding: spacing.md
   },
   imageWrap: {
     width: 92
@@ -146,7 +156,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     color: colors.ink,
     fontSize: 15,
-    fontWeight: "900",
+    fontWeight: "600",
     lineHeight: 20
   },
   itemMeta: {
@@ -168,7 +178,7 @@ const styles = StyleSheet.create({
   price: {
     color: colors.ink,
     fontSize: 16,
-    fontWeight: "900"
+    fontWeight: "700"
   },
   stepper: {
     alignItems: "center",
@@ -186,10 +196,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 30
   },
+  stepperButtonDisabled: {
+    opacity: 0.42
+  },
   quantity: {
     color: colors.ink,
     fontSize: 14,
-    fontWeight: "900",
+    fontWeight: "600",
     minWidth: 18,
     textAlign: "center"
   },
@@ -212,12 +225,12 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.ink,
     fontSize: 14,
-    fontWeight: "800"
+    fontWeight: "600"
   },
   summaryTotal: {
     color: colors.ink,
     fontSize: 20,
-    fontWeight: "900"
+    fontWeight: "700"
   },
   checkoutButton: {
     alignItems: "center",
@@ -230,7 +243,7 @@ const styles = StyleSheet.create({
   checkoutText: {
     color: colors.white,
     fontSize: 15,
-    fontWeight: "900"
+    fontWeight: "600"
   },
   note: {
     color: colors.muted,
@@ -254,7 +267,7 @@ const styles = StyleSheet.create({
   shopButtonText: {
     color: colors.white,
     fontSize: 15,
-    fontWeight: "900"
+    fontWeight: "600"
   },
   disabled: {
     opacity: 0.58
