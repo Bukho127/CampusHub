@@ -19,6 +19,8 @@ export type BackendUser = {
   firstName?: string;
   lastName?: string;
   email?: string;
+  emailVerified?: boolean;
+  institutionId?: string | null;
   displayName: string;
   identityType: BackendIdentityType;
   role?: BackendRole;
@@ -81,6 +83,9 @@ export type BackendCommunityPost = {
   body?: string;
   type: "announcement" | "event" | "service";
   dateLabel: string;
+  eventDate?: string;
+  eventTime?: string;
+  venue?: string;
   author?: string | BackendUser;
   image?: BackendImage;
   likeCount?: number;

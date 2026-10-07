@@ -7,7 +7,3 @@ export const updateMeSchema = z.object({
   location: z.string().trim().max(120).optional(),
   avatar: z.string().trim().url().optional()
 });
-
-export const campusEmailVerificationSchema = z.object({
-  campusEmail: z.string().trim().email().toLowerCase()
-});

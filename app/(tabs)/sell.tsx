@@ -193,12 +193,12 @@ export default function SellScreen() {
         ) : null}
         {token ? (
           <View style={styles.trustNotice}>
-            <Feather name="shield" size={20} color={user?.campusEmailVerificationStatus === "verified" ? colors.success : colors.accent} />
+            <Feather name="shield" size={20} color={user?.emailVerified ? colors.success : colors.accent} />
             <View style={styles.trustCopy}>
-              <Text style={styles.trustTitle}>{user?.campusEmailVerificationStatus === "verified" ? "Campus email verified" : "Seller not campus-verified"}</Text>
-              <Text style={styles.helper}>{user?.campusEmailVerificationStatus === "verified" ? "Buyers can see you have verified a CPUT email." : "You can list now; buyers will see that verification is pending or incomplete."}</Text>
+              <Text style={styles.trustTitle}>{user?.emailVerified ? "School email verified" : "School email not verified"}</Text>
+              <Text style={styles.helper}>{user?.emailVerified ? "Your institution email is verified." : "Verify an institution email before creating listings."}</Text>
             </View>
-            {user?.campusEmailVerificationStatus !== "verified" ? (
+            {!user?.emailVerified ? (
               <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/profile")} style={styles.noticeAction}>
                 <Text style={styles.noticeActionText}>Verify</Text>
               </Pressable>

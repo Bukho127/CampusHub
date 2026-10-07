@@ -38,7 +38,7 @@ function mapCategory(category: BackendCategory): Category {
 }
 
 function mapSeller(seller: BackendUser): Seller {
-  const campusVerified = seller.campusEmailVerificationStatus === "verified" || Boolean(seller.campusEmailVerified || seller.campusEmailVerifiedAt);
+  const campusVerified = Boolean(seller.emailVerified);
   const adminVerified = seller.vendorVerificationStatus === "verified";
   const verified = campusVerified || adminVerified;
   const verificationState = verified
@@ -54,7 +54,7 @@ function mapSeller(seller: BackendUser): Seller {
     identityType: seller.identityType,
     sellerType: seller.role === "vendor" && seller.vendorVerificationStatus === "verified" ? "vendor" : "casual",
     verificationState,
-    verificationLabel: campusVerified ? "Campus email verified" : adminVerified ? "Admin verified" : verificationState === "pending" ? "Verification pending" : "Unverified",
+    verificationLabel: campusVerified ? "School email verified" : adminVerified ? "Admin verified" : verificationState === "pending" ? "Verification pending" : "Unverified",
     rating: seller.rating ?? undefined,
     reviewCount: seller.reviewCount ?? 0,
     location: seller.location ?? "Campus community",

@@ -8,6 +8,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 type TokenPayload = {
   sub: string;
   role: Role;
+  tokenVersion?: number;
 };
 
 export const authenticate = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
@@ -19,15 +20,17 @@ export const authenticate = asyncHandler(async (req: Request, _res: Response, ne
   }
 
   const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
-  const user = await User.findById(payload.sub).select("_id role");
+  const user = await User.findById(payload.sub).select("_id role emailVerified tokenVersion");
 
-  if (!user) {
+  if (!user || (payload.tokenVersion ?? 0) !== user.tokenVersion) {
     throw new AppError("User no longer exists", 401);
   }
 
   req.user = {
     id: user._id.toString(),
-    role: user.role as Role
+    role: user.role as Role,
+    emailVerified: Boolean(user.emailVerified),
+    tokenVersion: user.tokenVersion
   };
 
   next();
@@ -43,12 +46,14 @@ export const optionalAuthenticate = asyncHandler(async (req: Request, _res: Resp
   }
 
   const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
-  const user = await User.findById(payload.sub).select("_id role");
+  const user = await User.findById(payload.sub).select("_id role emailVerified tokenVersion");
 
-  if (user) {
+  if (user && (payload.tokenVersion ?? 0) === user.tokenVersion) {
     req.user = {
       id: user._id.toString(),
-      role: user.role as Role
+      role: user.role as Role,
+      emailVerified: Boolean(user.emailVerified),
+      tokenVersion: user.tokenVersion
     };
   }
 
@@ -69,4 +74,16 @@ export function requireRoles(...roles: Role[]) {
 
     next();
   };
+}
+
+export function requireEmailVerified(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) {
+    next(new AppError("Authentication required", 401));
+    return;
+  }
+  if (!req.user.emailVerified) {
+    next(new AppError("Verify your school email before creating listings", 403));
+    return;
+  }
+  next();
 }

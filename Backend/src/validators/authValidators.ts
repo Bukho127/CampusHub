@@ -19,13 +19,19 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(32).max(256),
-  password: z.string().min(8).max(128)
+  password: z.string().min(8).max(128),
+  confirmPassword: z.string().min(8).max(128).optional()
+}).superRefine((value, context) => {
+  if (value.confirmPassword !== undefined && value.password !== value.confirmPassword) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Passwords do not match" });
+  }
 });
 
-export const campusEmailVerificationSchema = z.object({
-  campusEmail: z.string().trim().email().toLowerCase()
+export const verifySchoolEmailRequestSchema = z.object({
+  email: z.string().trim().email().toLowerCase(),
+  studentNumber: z.string().trim().max(80).optional()
 });
 
-export const verifyCampusEmailSchema = z.object({
-  token: z.string().min(32).max(256)
+export const verifySchoolEmailCodeSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit verification code")
 });

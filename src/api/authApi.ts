@@ -43,26 +43,21 @@ export async function requestPasswordReset(email: string) {
   });
 }
 
-export async function resetPassword(token: string, password: string) {
-  await apiRequest<null>("/auth/reset-password", {
-    method: "POST",
-    body: JSON.stringify({ token, password })
-  });
-}
-
-export async function requestCampusEmailVerification(campusEmail: string, token: string) {
-  await apiRequest<null>("/users/me/campus-verification", {
+export async function requestSchoolEmailCode(email: string, studentNumber: string | undefined, token: string) {
+  await apiRequest<null>("/auth/verify/request", {
     method: "POST",
     token,
-    body: JSON.stringify({ campusEmail })
+    body: JSON.stringify({ email, studentNumber })
   });
 }
 
-export async function verifyCampusEmail(token: string) {
-  await apiRequest<{ campusEmailVerified: boolean }>("/auth/verify-campus-email", {
+export async function confirmSchoolEmailCode(code: string, token: string) {
+  const response = await apiRequest<{ user: BackendUser }>("/auth/verify/confirm", {
     method: "POST",
-    body: JSON.stringify({ token })
+    token,
+    body: JSON.stringify({ code })
   });
+  return response.data.user;
 }
 
 export async function uploadProfileAvatar(avatar: AvatarUpload, token: string) {

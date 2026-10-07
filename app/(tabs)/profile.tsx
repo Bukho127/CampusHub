@@ -3,10 +3,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../src/api/client";
-import { requestCampusEmailVerification, uploadProfileAvatar } from "../../src/api/authApi";
+import { uploadProfileAvatar } from "../../src/api/authApi";
 import { ProfileAvatar } from "../../src/components/ProfileAvatar";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { colors, radii, spacing } from "../../src/theme/theme";
@@ -58,34 +58,9 @@ function MenuRow({ icon, label, onPress, value }: { icon: FeatherName; label: st
 export default function ProfileScreen() {
   const router = useRouter();
   const { isAuthenticated, logout, refreshUser, token, user } = useAuth();
-  const [campusEmail, setCampusEmail] = useState("");
-  const [verificationMessage, setVerificationMessage] = useState("");
-  const [verificationError, setVerificationError] = useState("");
-  const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarError, setAvatarError] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-
-  async function requestCampusVerification() {
-    setVerificationMessage("");
-    setVerificationError("");
-    if (!campusEmail.trim().toLowerCase().endsWith("@mycput.ac.za")) {
-      setVerificationError("Use your CPUT email address ending in @mycput.ac.za.");
-      return;
-    }
-    if (!token) return;
-
-    setIsSendingVerification(true);
-    try {
-      await requestCampusEmailVerification(campusEmail.trim().toLowerCase(), token);
-      await refreshUser();
-      setVerificationMessage("Verification link sent.");
-    } catch (caught) {
-      setVerificationError(caught instanceof ApiError ? caught.message : "Could not reach the API server.");
-    } finally {
-      setIsSendingVerification(false);
-    }
-  }
 
   async function chooseAvatar() {
     setAvatarMessage("");
@@ -179,33 +154,17 @@ export default function ProfileScreen() {
 
         <MenuCard title="Settings">
           <MenuRow icon="mail" label="Email" value={user.emailVerificationStatus ?? "unverified"} />
-          <MenuRow icon="shield" label="Campus Email" value={user.campusEmailVerificationStatus ?? "unverified"} />
+          <MenuRow icon="shield" label="School Email" value={user.emailVerified ? "verified" : "not verified"} />
           <MenuRow icon="globe" label="Language" />
           <MenuRow icon="headphones" label="Support" />
         </MenuCard>
 
-        {user.campusEmailVerificationStatus !== "verified" ? (
-          <MenuCard title="Campus Verification">
-            <TextInput
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              onChangeText={setCampusEmail}
-              placeholder="Your CPUT email address"
-              placeholderTextColor={colors.subtle}
-              style={styles.input}
-              value={campusEmail}
-            />
-            {verificationMessage ? <Text accessibilityRole="alert" style={styles.successText}>{verificationMessage}</Text> : null}
-            {verificationError ? <Text accessibilityRole="alert" style={styles.errorText}>{verificationError}</Text> : null}
-            <Pressable accessibilityRole="button" disabled={isSendingVerification} onPress={requestCampusVerification} style={[styles.verifyButton, isSendingVerification && styles.disabled]}>
-              <Text style={styles.verifyButtonText}>{isSendingVerification ? "Sending..." : user.campusEmailVerificationStatus === "pending" ? "Resend verification link" : "Verify campus email"}</Text>
+        {!user.emailVerified ? (
+          <MenuCard title="School Email Verification">
+            <Text style={styles.verificationHint}>Verify an active institution email to create listings. Student number is optional.</Text>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/(auth)/verify-email")} style={styles.verifyButton}>
+              <Text style={styles.verifyButtonText}>Verify school email</Text>
             </Pressable>
-            {verificationMessage ? (
-              <Pressable accessibilityRole="button" onPress={() => router.push("/(auth)/verify-campus-email")} style={styles.textButton}>
-                <Text style={styles.textButtonLabel}>I have a verification token</Text>
-              </Pressable>
-            ) : null}
           </MenuCard>
         ) : null}
 
@@ -368,6 +327,11 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 14,
     fontWeight: "800"
+  },
+  verificationHint: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19
   },
   textButton: {
     alignItems: "center",

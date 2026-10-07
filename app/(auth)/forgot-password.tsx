@@ -52,7 +52,6 @@ export default function ForgotPasswordScreen() {
           </View>
           {message ? <Text accessibilityRole="alert" style={styles.success}>{message}</Text> : null}
           {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-          {message ? <Link href="/(auth)/reset-password" style={styles.backLink}>I have a reset token</Link> : null}
           <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={submit} style={[styles.primaryButton, isSubmitting && styles.disabled]}>
             <Text style={styles.primaryText}>{isSubmitting ? "Sending..." : "Send reset link"}</Text>
           </Pressable>

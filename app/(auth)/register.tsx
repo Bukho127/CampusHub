@@ -54,7 +54,7 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
     try {
       await register({ firstName: firstName.trim(), lastName: lastName.trim(), email, password, identityType });
-      router.replace("/(tabs)");
+      router.replace("/(auth)/verify-email");
     } catch (caught) {
       setError(
         caught instanceof ApiError
