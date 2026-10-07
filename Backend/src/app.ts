@@ -7,9 +7,12 @@ import morgan from "morgan";
 import { env } from "./config/env";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 import { apiRouter } from "./routes";
+import { renderPasswordResetPage, submitPasswordResetPage } from "./controllers/authController";
 import { sendSuccess } from "./utils/apiResponse";
 
 const allowedOrigins = env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean);
+const resetPageLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
+morgan.token("safe-url", (req) => (req.url ?? "").replace(/([?&]token=)[^&]*/gi, "$1[redacted]"));
 
 export const app = express();
 
@@ -37,7 +40,9 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
-app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(morgan(env.NODE_ENV === "production"
+  ? ":remote-addr :method :safe-url :status :res[content-length] - :response-time ms"
+  : ":method :safe-url :status :response-time ms"));
 
 app.use("/uploads", express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
 
@@ -58,6 +63,9 @@ app.get("/", (_req, res) => {
 app.get("/health", (_req, res) => {
   sendSuccess(res, { status: "ok" }, "Community Store API is healthy");
 });
+
+app.get("/auth/reset-password", renderPasswordResetPage);
+app.post("/auth/reset-password", resetPageLimit, submitPasswordResetPage);
 
 app.use("/api", apiRouter);
 app.use(notFound);
