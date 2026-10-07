@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import type { Listing, Seller } from "../models/marketplace";
+import { useCart } from "../contexts/CartContext";
 import { colors, radii, spacing } from "../theme/theme";
 import { formatRand } from "../utils/money";
 import { AssetSlotView } from "./AssetSlotView";
@@ -16,17 +17,24 @@ type Props = {
 
 export function ProductCard({ listing, seller, compact }: Props) {
   const router = useRouter();
+  const { isSoldOut } = useCart();
   const image = listing.images[0];
+  const soldOut = isSoldOut(listing);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open ${listing.title}`}
+      accessibilityLabel={`Open ${listing.title}${soldOut ? ", sold out" : ""}`}
       onPress={() => router.push(`/product/${listing.id}`)}
-      style={[styles.card, compact && styles.compactCard]}
+      style={[styles.card, compact && styles.compactCard, soldOut && styles.soldCard]}
     >
       <View>
         {image ? <AssetSlotView slot={image.slot} uri={image.url} height={compact ? 116 : 132} rounded={radii.md} /> : null}
+        {soldOut ? (
+          <View style={styles.soldPill}>
+            <Text style={styles.soldPillText}>Sold out</Text>
+          </View>
+        ) : null}
         <FavoriteButton listingId={listing.id} unselectedColor={colors.white} style={styles.favorite} />
       </View>
       <View style={styles.body}>
@@ -73,6 +81,23 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 158,
     width: "auto"
+  },
+  soldCard: {
+    opacity: 0.72
+  },
+  soldPill: {
+    backgroundColor: "rgba(23, 23, 23, 0.86)",
+    borderRadius: radii.pill,
+    left: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    position: "absolute",
+    top: 8
+  },
+  soldPillText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700"
   },
   favorite: {
     alignItems: "center",

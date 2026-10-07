@@ -24,7 +24,7 @@ export default function ProductDetailScreen() {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [similar, setSimilar] = useState<Listing[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const { addItem, getQuantity } = useCart();
+  const { addItem, getAvailableQuantity, getQuantity, isSoldOut } = useCart();
 
   useEffect(() => {
     async function load() {
@@ -55,6 +55,9 @@ export default function ProductDetailScreen() {
   const displayedReviewCount = seller?.reviewCount ?? listing.reviewCount;
   const isFood = listing.type === "goods" && listing.categoryId.toLowerCase().includes("food");
   const cartQuantity = getQuantity(listing.id);
+  const availableQuantity = getAvailableQuantity(listing);
+  const soldOut = isSoldOut(listing);
+  const reachedQuantityLimit = listing.type === "goods" && cartQuantity >= availableQuantity;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -97,7 +100,9 @@ export default function ProductDetailScreen() {
         </View>
 
         <View style={styles.badges}>
+          {soldOut ? <Badge label="Sold out" tone="dark" /> : null}
           {isFood ? <Badge label="Food & Bev" /> : listing.type === "goods" ? <Badge label={listing.condition ?? "Goods"} /> : <Badge label="Service" />}
+          {listing.type === "goods" && !soldOut ? <Badge label={`${availableQuantity} available`} /> : null}
           {listing.type === "goods" ? listing.dietaryTags?.map((tag) => <DietaryTagBadge key={tag} tag={tag} />) : null}
           {listing.type === "goods" && listing.tradeEnabled ? <Badge label="Trade enabled" tone="success" /> : null}
         </View>
@@ -139,10 +144,19 @@ export default function ProductDetailScreen() {
             }
             addItem(listing);
           }}
-          style={styles.primaryAction}
+          disabled={soldOut || reachedQuantityLimit}
+          style={[styles.primaryAction, (soldOut || reachedQuantityLimit) && styles.primaryActionDisabled]}
         >
           <Text style={styles.primaryActionText}>
-            {listing.type === "service" ? "Request service" : cartQuantity > 0 ? `Add another (${cartQuantity})` : "Add to cart"}
+            {listing.type === "service"
+              ? "Request service"
+              : soldOut
+                ? "Sold out"
+                : reachedQuantityLimit
+                  ? `In cart (${cartQuantity}/${availableQuantity})`
+                  : cartQuantity > 0
+                    ? `Add another (${cartQuantity})`
+                    : "Add to cart"}
           </Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.push("/cart")} style={styles.cartLink}>
@@ -280,6 +294,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     minHeight: 50,
     justifyContent: "center"
+  },
+  primaryActionDisabled: {
+    backgroundColor: colors.muted
   },
   primaryActionText: {
     color: colors.white,
