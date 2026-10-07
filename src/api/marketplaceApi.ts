@@ -39,3 +39,10 @@ export async function fetchListingsBySeller(sellerId: string) {
   const response = await apiRequest<{ listings: BackendListing[] }>(`/sellers/${sellerId}/listings`);
   return response.data.listings;
 }
+
+export async function deleteListingApi(id: string, token: string) {
+  await apiRequest<null>(`/listings/${id}`, {
+    method: "DELETE",
+    token
+  });
+}

@@ -1,32 +1,86 @@
 import { useRouter } from "expo-router";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import { FlatList, Image, Pressable, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { assetSlots } from "../src/theme/assets";
 import { colors, radii, spacing } from "../src/theme/theme";
 
+const slides: Array<{
+  id: string;
+  image: ImageSourcePropType | null;
+  kicker: string[];
+  title: string[];
+  subtitle: string;
+}> = [
+  {
+    id: "community",
+    image: assetSlots.logo,
+    kicker: ["Where", "Meets"],
+    title: ["Campus", "Community."],
+    subtitle: "Marketplace built to connect students, faculty, local vendors, and residents"
+  },
+  {
+    id: "delivery",
+    image: require("../assets/slideshow-one.png") as ImageSourcePropType,
+    kicker: ["Trade", "With"],
+    title: ["Trust", "On Campus."],
+    subtitle: "Find books, essentials, and local deals, then coordinate handovers and delivery with people nearby."
+  }
+];
+
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listRef = useRef<FlatList<(typeof slides)[number]>>(null);
+
+  function handleScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    setActiveIndex(nextIndex);
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.backgroundBeam} />
       <View style={styles.content}>
-        <View style={styles.logoWrap}>
-          {assetSlots.logo ? <Image source={assetSlots.logo} style={styles.logo} resizeMode="contain" /> : null}
-        </View>
+        <FlatList
+          ref={listRef}
+          style={styles.slider}
+          contentContainerStyle={styles.sliderContent}
+          data={slides}
+          horizontal
+          keyExtractor={(item) => item.id}
+          onMomentumScrollEnd={handleScrollEnd}
+          pagingEnabled
+          renderItem={({ item }) => (
+            <View style={[styles.slide, { width }]}>
+              <View style={styles.logoWrap}>
+                {item.image ? <Image source={item.image} style={item.id === "delivery" ? styles.slideImage : styles.logo} resizeMode="contain" /> : null}
+              </View>
 
-        <View style={styles.copy}>
-          <Text style={styles.kicker}>Where</Text>
-          <Text style={styles.title}>Campus</Text>
-          <Text style={styles.kicker}>Meets</Text>
-          <Text style={styles.title}>Community.</Text>
-          <Text style={styles.subtitle}>Marketplace built to connect students, faculty, local vendors, and residents</Text>
-        </View>
+              <View style={styles.copy}>
+                <Text style={styles.kicker}>{item.kicker[0]}</Text>
+                <Text style={styles.title}>{item.title[0]}</Text>
+                <Text style={styles.kicker}>{item.kicker[1]}</Text>
+                <Text style={styles.title}>{item.title[1]}</Text>
+                <Text style={styles.subtitle}>{item.subtitle}</Text>
+              </View>
+            </View>
+          )}
+          showsHorizontalScrollIndicator={false}
+        />
 
         <View style={styles.dots}>
-          <View style={[styles.dot, styles.activeDot]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
+          {slides.map((slide, index) => (
+            <Pressable
+              key={slide.id}
+              accessibilityLabel={`Show onboarding slide ${index + 1}`}
+              onPress={() => {
+                setActiveIndex(index);
+                listRef.current?.scrollToIndex({ animated: true, index });
+              }}
+              style={[styles.dot, activeIndex === index && styles.activeDot]}
+            />
+          ))}
         </View>
 
         <Pressable accessibilityRole="button" onPress={() => router.push("/(auth)/login")} style={styles.button}>
@@ -46,16 +100,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     flex: 1
   },
-  backgroundBeam: {
-    alignSelf: "center",
-    backgroundColor: "#eaf9e8",
-    height: 560,
-    opacity: 0.72,
-    position: "absolute",
-    top: -40,
-    transform: [{ rotate: "18deg" }],
-    width: 220
-  },
   content: {
     alignItems: "center",
     flex: 1,
@@ -63,14 +107,34 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.xl
   },
+  slide: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "flex-end",
+    paddingHorizontal: spacing.xl
+  },
+  slider: {
+    alignSelf: "stretch",
+    flexGrow: 0,
+    height: 520,
+    marginHorizontal: -spacing.xl
+  },
+  sliderContent: {
+    alignItems: "stretch"
+  },
   logoWrap: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 68
+    marginBottom: 68,
+    minHeight: 224
   },
   logo: {
     height: 152,
     width: 152
+  },
+  slideImage: {
+    height: 224,
+    width: 260
   },
   copy: {
     alignItems: "center",
@@ -119,6 +183,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: "center",
     marginBottom: 14,
+    maxWidth: 360,
     width: "100%"
   },
   buttonText: {

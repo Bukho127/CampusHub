@@ -1,9 +1,10 @@
 import { Feather, FontAwesome } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from "react-native";
+import { Alert, Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../src/api/client";
+import { deleteListingApi } from "../../src/api/marketplaceApi";
 import { fetchSellerReviews, createSellerReview } from "../../src/api/reviewsApi";
 import { reportSellerApi } from "../../src/api/reportsApi";
 import { Badge } from "../../src/components/Badge";
@@ -69,6 +70,7 @@ export default function SellerProfileScreen() {
   const [reportError, setReportError] = useState("");
   const [reportMessage, setReportMessage] = useState("");
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [listingError, setListingError] = useState("");
   const viewerId = user?.id ?? user?._id;
   const isOwnProfile = Boolean(viewerId && seller?.id === viewerId);
 
@@ -156,6 +158,27 @@ export default function SellerProfileScreen() {
     } finally {
       setIsSubmittingReport(false);
     }
+  }
+
+  function confirmDeleteListing(listing: Listing) {
+    if (!token) return;
+    setListingError("");
+
+    Alert.alert("Delete listing?", `${listing.title} will be removed from the marketplace.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteListingApi(listing.id, token);
+            setListings((current) => current.filter((item) => item.id !== listing.id));
+          } catch (caught) {
+            setListingError(caught instanceof ApiError ? caught.message : "Could not delete this listing.");
+          }
+        }
+      }
+    ]);
   }
 
   if (loaded && !seller) {
@@ -277,9 +300,17 @@ export default function SellerProfileScreen() {
         ) : null}
 
         <Text style={styles.sectionTitle}>Active listings</Text>
+        {listingError ? <Text accessibilityRole="alert" style={styles.error}>{listingError}</Text> : null}
         <View style={styles.grid}>
           {listings.map((listing) => (
-            <ProductCard key={listing.id} listing={listing} seller={seller} compact />
+            <View key={listing.id} style={styles.listingTile}>
+              <ProductCard listing={listing} seller={seller} compact />
+              {isOwnProfile ? (
+                <Pressable accessibilityLabel={`Delete ${listing.title}`} onPress={() => confirmDeleteListing(listing)} style={styles.listingDeleteButton}>
+                  <Feather name="trash-2" size={17} color={colors.danger} />
+                </Pressable>
+              ) : null}
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -397,5 +428,21 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
     marginTop: 12
+  },
+  listingTile: {
+    flex: 1,
+    minWidth: 158,
+    position: "relative"
+  },
+  listingDeleteButton: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: radii.pill,
+    height: 36,
+    justifyContent: "center",
+    position: "absolute",
+    left: 8,
+    top: 8,
+    width: 36
   }
 });

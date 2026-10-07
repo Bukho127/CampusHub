@@ -134,15 +134,40 @@ export default function HomeScreen() {
         />
 
         <SectionHeader title="Community deals" />
-        {communityPosts.map((post) => (
-          <View key={post.id} style={styles.post}>
-            <View>
-              <Text style={styles.postTitle}>{post.title}</Text>
-              <Text style={styles.postSummary}>{post.summary}</Text>
-            </View>
-            <Text style={styles.postDate}>{post.dateLabel}</Text>
-          </View>
-        ))}
+        <FlatList
+          horizontal
+          data={communityPosts.slice(0, 6)}
+          keyExtractor={(post) => post.id}
+          renderItem={({ item }) => (
+            <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/community")} style={styles.communityCard}>
+              <View style={styles.communityImageWrap}>
+                {item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} style={styles.communityImage} resizeMode="cover" />
+                ) : (
+                  <View style={styles.communityImageFallback}>
+                    <Feather name="calendar" size={24} color={colors.accent} />
+                  </View>
+                )}
+                <View style={styles.communityType}>
+                  <Text style={styles.communityTypeText}>{item.type}</Text>
+                </View>
+              </View>
+              <View style={styles.communityBody}>
+                <Text numberOfLines={2} style={styles.postTitle}>{item.title}</Text>
+                <Text numberOfLines={2} style={styles.postSummary}>{item.summary}</Text>
+                <View style={styles.communityMeta}>
+                  <Text numberOfLines={1} style={styles.postDate}>{item.dateLabel}</Text>
+                  <View style={styles.communityStat}>
+                    <Feather name="heart" size={13} color={colors.accent} />
+                    <Text style={styles.communityStatText}>{item.likeCount}</Text>
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+          )}
+          contentContainerStyle={styles.communityRow}
+          showsHorizontalScrollIndicator={false}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -294,28 +319,84 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingBottom: 24
   },
-  post: {
-    borderBottomColor: colors.line,
-    borderBottomWidth: 1,
-    flexDirection: "row",
+  communityRow: {
     gap: 14,
-    justifyContent: "space-between",
-    paddingVertical: 14
+    paddingBottom: 24
+  },
+  communityCard: {
+    backgroundColor: colors.white,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    overflow: "hidden",
+    width: 168
+  },
+  communityImageWrap: {
+    height: 132,
+    position: "relative",
+    width: "100%"
+  },
+  communityImage: {
+    height: "100%",
+    width: "100%"
+  },
+  communityImageFallback: {
+    alignItems: "center",
+    backgroundColor: "rgba(241,90,36,0.1)",
+    height: "100%",
+    justifyContent: "center",
+    width: "100%"
+  },
+  communityType: {
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: radii.pill,
+    left: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    position: "absolute",
+    top: 10
+  },
+  communityTypeText: {
+    color: colors.ink,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "capitalize"
+  },
+  communityBody: {
+    gap: 6,
+    padding: spacing.md,
+    minHeight: 132
   },
   postTitle: {
     color: colors.ink,
     fontSize: 15,
-    fontWeight: "800"
+    fontWeight: "900",
+    lineHeight: 19,
+    minHeight: 38
   },
   postSummary: {
     color: colors.muted,
     fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
-    maxWidth: 250
+    lineHeight: 18
+  },
+  communityMeta: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 2
   },
   postDate: {
     color: colors.accent,
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  communityStat: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4
+  },
+  communityStatText: {
+    color: colors.muted,
     fontSize: 12,
     fontWeight: "800"
   }
