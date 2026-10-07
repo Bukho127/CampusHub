@@ -1,7 +1,7 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../src/api/client";
 import { fetchSellerReviews, createSellerReview } from "../../src/api/reviewsApi";
@@ -17,6 +17,38 @@ import type { BackendReview } from "../../src/api/types";
 import type { Listing, Seller } from "../../src/models/marketplace";
 import { getListingsBySeller, getSellerById } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
+
+const AnimatedStar = Animated.createAnimatedComponent(FontAwesome);
+
+function RatingStar({ onSelect, selected, value }: { onSelect: (value: number) => void; selected: boolean; value: number }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  function press() {
+    Vibration.vibrate(12);
+    onSelect(value);
+    Animated.sequence([
+      Animated.timing(scale, { duration: 90, toValue: 1.28, useNativeDriver: true }),
+      Animated.spring(scale, { friction: 4, tension: 180, toValue: 1, useNativeDriver: true })
+    ]).start();
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Set rating to ${value} out of 5 stars`}
+      accessibilityState={{ selected }}
+      onPress={press}
+      style={styles.starButton}
+    >
+      <AnimatedStar
+        name={selected ? "star" : "star-o"}
+        size={42}
+        color={selected ? colors.accent : colors.line}
+        style={{ transform: [{ scale }] }}
+      />
+    </Pressable>
+  );
+}
 
 export default function SellerProfileScreen() {
   const router = useRouter();
@@ -182,9 +214,7 @@ export default function SellerProfileScreen() {
             <Text style={styles.formTitle}>Rate this seller</Text>
             <View style={styles.starPicker}>
               {[1, 2, 3, 4, 5].map((value) => (
-                <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} out of 5 stars`} accessibilityState={{ selected: rating === value }} onPress={() => setRating(value)} style={styles.starButton}>
-                  <Feather name="star" size={34} color={value <= rating ? colors.accent : colors.line} fill={value <= rating ? colors.accent : "transparent"} />
-                </Pressable>
+                <RatingStar key={value} value={value} selected={value <= rating} onSelect={setRating} />
               ))}
             </View>
             <TextInput
@@ -212,7 +242,7 @@ export default function SellerProfileScreen() {
               <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text>
             </View>
             <View style={styles.reviewStars}>
-              {[1, 2, 3, 4, 5].map((value) => <Feather key={value} name="star" size={14} color={value <= review.rating ? colors.accent : colors.line} fill={value <= review.rating ? colors.accent : "transparent"} />)}
+              {[1, 2, 3, 4, 5].map((value) => <FontAwesome key={value} name={value <= review.rating ? "star" : "star-o"} size={16} color={value <= review.rating ? colors.accent : colors.line} />)}
             </View>
             <Text style={styles.reviewComment}>{review.comment}</Text>
           </View>
@@ -340,8 +370,8 @@ const styles = StyleSheet.create({
     padding: spacing.md
   },
   formTitle: { color: colors.ink, fontSize: 15, fontWeight: "800" },
-  starPicker: { flexDirection: "row", gap: spacing.xs },
-  starButton: { alignItems: "center", justifyContent: "center", minHeight: 52, minWidth: 48 },
+  starPicker: { flexDirection: "row", gap: spacing.sm },
+  starButton: { alignItems: "center", justifyContent: "center", minHeight: 58, minWidth: 54 },
   reviewInput: { backgroundColor: colors.white, borderColor: colors.line, borderRadius: radii.sm, borderWidth: 1, color: colors.ink, minHeight: 96, padding: spacing.md },
   actionButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radii.pill, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.lg },
   actionButtonText: { color: colors.white, fontSize: 13, fontWeight: "800" },

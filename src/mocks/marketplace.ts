@@ -199,13 +199,21 @@ export const communityPosts: CommunityPost[] = [
     title: "Student Market Friday",
     summary: "Bring second-hand books, clothing, and dorm essentials to the central courtyard.",
     type: "event",
-    dateLabel: "Fri, 9 Oct"
+    dateLabel: "Fri, 9 Oct",
+    likeCount: 12,
+    commentCount: 0,
+    likedByMe: false,
+    comments: []
   },
   {
     id: "textbook-exchange",
     title: "Textbook Exchange",
     summary: "The library society is collecting course books for affordable resale.",
     type: "announcement",
-    dateLabel: "This week"
+    dateLabel: "This week",
+    likeCount: 8,
+    commentCount: 0,
+    likedByMe: false,
+    comments: []
   }
 ];

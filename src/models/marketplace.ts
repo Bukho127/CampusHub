@@ -96,6 +96,22 @@ export type CommunityPost = {
   id: string;
   title: string;
   summary: string;
+  body?: string;
   type: "announcement" | "event" | "service";
   dateLabel: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  authorName?: string;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  comments: CommunityComment[];
+  createdAt?: string;
+};
+
+export type CommunityComment = {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt?: string;
 };

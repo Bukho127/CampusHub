@@ -8,6 +8,9 @@ import { useAuth } from "../../src/contexts/AuthContext";
 import { assetSlots } from "../../src/theme/assets";
 import { colors, radii, spacing } from "../../src/theme/theme";
 
+const googleIcon = require("../../assets/Google-icon.png");
+const appleIcon = require("../../assets/apple-icon.png");
+
 function isEmail(value: string) {
   return /\S+@\S+\.\S+/.test(value);
 }
@@ -99,9 +102,11 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.socialButton}>
+            <Image source={googleIcon} style={styles.socialIcon} resizeMode="contain" />
             <Text style={styles.socialText}>Continue With Google</Text>
           </View>
           <View style={styles.socialButton}>
+            <Image source={appleIcon} style={styles.socialIcon} resizeMode="contain" />
             <Text style={styles.socialText}>Continue With Apple</Text>
           </View>
 
@@ -238,10 +243,16 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: radii.pill,
     borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
     justifyContent: "center",
     marginBottom: 14,
     minHeight: 48,
     width: "100%"
+  },
+  socialIcon: {
+    height: 22,
+    width: 22
   },
   socialText: {
     color: colors.ink,

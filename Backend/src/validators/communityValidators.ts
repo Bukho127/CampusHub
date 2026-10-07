@@ -7,3 +7,7 @@ export const createCommunityPostSchema = z.object({
   type: z.enum(["announcement", "event", "service"]),
   dateLabel: z.string().trim().min(1).max(80)
 });
+
+export const createCommunityCommentSchema = z.object({
+  body: z.string().trim().min(1).max(1200)
+});

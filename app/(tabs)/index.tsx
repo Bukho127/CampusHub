@@ -9,6 +9,7 @@ import { ProductCard } from "../../src/components/ProductCard";
 import { SearchBar } from "../../src/components/SearchBar";
 import { SectionHeader } from "../../src/components/SectionHeader";
 import { useAuth } from "../../src/contexts/AuthContext";
+import { useCart } from "../../src/contexts/CartContext";
 import type { Category, CommunityPost, Listing, Seller } from "../../src/models/marketplace";
 import { getCommunityPosts } from "../../src/services/communityService";
 import { getCategories, getListings, getSellers } from "../../src/services/productService";
@@ -17,6 +18,7 @@ import { colors, radii, spacing } from "../../src/theme/theme";
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { itemCount } = useCart();
   const greetingName = user?.firstName?.trim() || user?.displayName?.trim().split(/\s+/)[0] || "there";
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -30,7 +32,7 @@ export default function HomeScreen() {
       let active = true;
 
       getCategories().then((items) => { if (active) setCategories(items); }).catch(() => { if (active) setCategories([]); });
-      getCommunityPosts().then((posts) => { if (active) setCommunityPosts(posts); }).catch(() => { if (active) setCommunityPosts([]); });
+      getCommunityPosts().then((result) => { if (active) setCommunityPosts(result.posts); }).catch(() => { if (active) setCommunityPosts([]); });
       getSellers().then((items) => { if (active) setSellers(items); }).catch(() => { if (active) setSellers([]); });
       getListings({ sort: "rating" }).then((items) => { if (active) setFeatured(items.slice(0, 4)); }).catch(() => { if (active) setFeatured([]); });
       getListings({ sort: "newest" }).then((items) => { if (active) setRecent(items.slice(0, 4)); }).catch(() => { if (active) setRecent([]); });
@@ -60,8 +62,13 @@ export default function HomeScreen() {
               <Feather name="bell" size={21} color={colors.ink} />
               <View style={styles.notificationDot} />
             </Pressable>
-            <Pressable accessibilityLabel="Open cart" style={styles.iconButton}>
+            <Pressable accessibilityLabel="Open cart" onPress={() => router.push("/cart")} style={styles.iconButton}>
               <Feather name="shopping-bag" size={21} color={colors.ink} />
+              {itemCount > 0 ? (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{itemCount > 9 ? "9+" : itemCount}</Text>
+                </View>
+              ) : null}
             </Pressable>
           </View>
         </View>
@@ -187,6 +194,25 @@ const styles = StyleSheet.create({
     right: 11,
     top: 10,
     width: 10
+  },
+  cartBadge: {
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    borderColor: colors.white,
+    borderRadius: radii.pill,
+    borderWidth: 2,
+    height: 20,
+    justifyContent: "center",
+    minWidth: 20,
+    paddingHorizontal: 4,
+    position: "absolute",
+    right: 4,
+    top: 2
+  },
+  cartBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: "900"
   },
   searchRow: {
     alignItems: "center",

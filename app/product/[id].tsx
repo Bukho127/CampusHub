@@ -11,6 +11,7 @@ import { VerificationBadge } from "../../src/components/VerificationBadge";
 import { EmptyState } from "../../src/components/EmptyState";
 import { ProfileAvatar } from "../../src/components/ProfileAvatar";
 import { ProductCard } from "../../src/components/ProductCard";
+import { useCart } from "../../src/contexts/CartContext";
 import type { Listing, Seller } from "../../src/models/marketplace";
 import { getListingById, getListings, getSellerById } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
@@ -23,6 +24,7 @@ export default function ProductDetailScreen() {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [similar, setSimilar] = useState<Listing[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const { addItem, getQuantity } = useCart();
 
   useEffect(() => {
     async function load() {
@@ -52,6 +54,7 @@ export default function ProductDetailScreen() {
   const displayedRating = seller?.rating ?? listing.rating ?? 0;
   const displayedReviewCount = seller?.reviewCount ?? listing.reviewCount;
   const isFood = listing.type === "goods" && listing.categoryId.toLowerCase().includes("food");
+  const cartQuantity = getQuantity(listing.id);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -127,10 +130,24 @@ export default function ProductDetailScreen() {
         ) : null}
       </ScrollView>
       <View style={styles.bottomBar}>
-        <Pressable accessibilityRole="button" style={styles.primaryAction}>
-          <Text style={styles.primaryActionText}>{listing.type === "service" ? "Request service" : "Add to cart"}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            if (listing.type === "service") {
+              seller && router.push(`/seller/${seller.id}`);
+              return;
+            }
+            addItem(listing);
+          }}
+          style={styles.primaryAction}
+        >
+          <Text style={styles.primaryActionText}>
+            {listing.type === "service" ? "Request service" : cartQuantity > 0 ? `Add another (${cartQuantity})` : "Add to cart"}
+          </Text>
         </Pressable>
-        <Text style={styles.demoNote}>Checkout and booking are not processed yet.</Text>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/cart")} style={styles.cartLink}>
+          <Text style={styles.demoNote}>{cartQuantity > 0 ? "View cart" : "Checkout and booking are not processed yet."}</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -274,6 +291,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center"
+  },
+  cartLink: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 24
   },
   similar: {
     flexDirection: "row",

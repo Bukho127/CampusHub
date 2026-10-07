@@ -82,5 +82,17 @@ export type BackendCommunityPost = {
   type: "announcement" | "event" | "service";
   dateLabel: string;
   author?: string | BackendUser;
+  image?: BackendImage;
+  likeCount?: number;
+  commentCount?: number;
+  likedByMe?: boolean;
+  comments?: BackendCommunityComment[];
+  createdAt?: string;
+};
+
+export type BackendCommunityComment = {
+  _id: string;
+  author?: string | BackendUser;
+  body: string;
   createdAt?: string;
 };

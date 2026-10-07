@@ -54,3 +54,18 @@ export const uploadProfileAvatar = multer({
     callback(null, true);
   }
 }).single("avatar");
+
+export const uploadCommunityImage = multer({
+  storage,
+  limits: {
+    fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024,
+    files: 1
+  },
+  fileFilter: (_req, file, callback) => {
+    if (!allowedMimeTypes.has(file.mimetype)) {
+      callback(new AppError("Only JPEG, PNG, and WebP images are allowed", 400));
+      return;
+    }
+    callback(null, true);
+  }
+}).single("image");

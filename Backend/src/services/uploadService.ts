@@ -21,3 +21,13 @@ export function filesToStoredImages(files: Express.Multer.File[] | undefined, ti
 export function fileToPublicUploadUrl(file: Express.Multer.File) {
   return `/uploads/${path.basename(file.filename)}`;
 }
+
+export function fileToStoredImage(file: Express.Multer.File, alt: string): StoredImage {
+  return {
+    url: `/uploads/${path.basename(file.filename)}`,
+    filename: file.filename,
+    mimetype: file.mimetype,
+    size: file.size,
+    alt
+  };
+}

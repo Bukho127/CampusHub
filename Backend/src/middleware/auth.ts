@@ -33,6 +33,28 @@ export const authenticate = asyncHandler(async (req: Request, _res: Response, ne
   next();
 });
 
+export const optionalAuthenticate = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (!token) {
+    next();
+    return;
+  }
+
+  const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
+  const user = await User.findById(payload.sub).select("_id role");
+
+  if (user) {
+    req.user = {
+      id: user._id.toString(),
+      role: user.role as Role
+    };
+  }
+
+  next();
+});
+
 export function requireRoles(...roles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
