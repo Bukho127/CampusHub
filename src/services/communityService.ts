@@ -1,4 +1,4 @@
-import { addCommunityPostCommentApi, createCommunityPostApi, fetchCommunityPosts, toggleCommunityPostLikeApi, type CommunityPostPayload } from "../api/communityApi";
+import { addCommunityPostCommentApi, createCommunityPostApi, deleteCommunityPostApi, fetchCommunityPosts, toggleCommunityPostLikeApi, type CommunityPostPayload } from "../api/communityApi";
 import { toAbsoluteApiUrl } from "../api/config";
 import type { BackendCommunityPost, BackendUser } from "../api/types";
 import type { CommunityPost } from "../models/marketplace";
@@ -6,6 +6,11 @@ import type { CommunityPost } from "../models/marketplace";
 function authorName(author: BackendCommunityPost["author"]) {
   if (typeof author === "object" && author) return author.displayName;
   return "Campus member";
+}
+
+function authorId(author: BackendCommunityPost["author"]) {
+  if (typeof author === "object" && author) return author.id ?? author._id;
+  return author;
 }
 
 function mapCommunityPost(post: BackendCommunityPost): CommunityPost {
@@ -16,8 +21,12 @@ function mapCommunityPost(post: BackendCommunityPost): CommunityPost {
     body: post.body,
     type: post.type,
     dateLabel: post.dateLabel,
+    eventDate: post.eventDate,
+    eventTime: post.eventTime,
+    venue: post.venue,
     imageUrl: post.image?.url ? toAbsoluteApiUrl(post.image.url) : undefined,
     imageAlt: post.image?.alt,
+    authorId: authorId(post.author),
     authorName: authorName(post.author),
     likeCount: post.likeCount ?? 0,
     commentCount: post.commentCount ?? post.comments?.length ?? 0,
@@ -50,4 +59,8 @@ export async function toggleCommunityPostLike(id: string, token: string) {
 
 export async function addCommunityPostComment(id: string, body: string, token: string) {
   return mapCommunityPost(await addCommunityPostCommentApi(id, body, token));
+}
+
+export async function deleteCommunityPost(id: string, token: string) {
+  await deleteCommunityPostApi(id, token);
 }

@@ -2,13 +2,13 @@ import { Feather, FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, FlatList, Image, Modal, PanResponder, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Animated, Easing, FlatList, Image, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../src/api/client";
 import { Badge } from "../../src/components/Badge";
 import { useAuth } from "../../src/contexts/AuthContext";
 import type { CommunityPost } from "../../src/models/marketplace";
-import { addCommunityPostComment, createCommunityPost, getCommunityPosts, toggleCommunityPostLike } from "../../src/services/communityService";
+import { addCommunityPostComment, createCommunityPost, deleteCommunityPost, getCommunityPosts, toggleCommunityPostLike } from "../../src/services/communityService";
 import { colors, radii, spacing } from "../../src/theme/theme";
 
 type SelectedImage = {
@@ -21,8 +21,22 @@ const emptyEvent = {
   title: "",
   summary: "",
   body: "",
-  dateLabel: ""
+  eventDate: "",
+  eventTime: "",
+  venue: ""
 };
+
+function dateValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function shortDateLabel(value: string) {
+  if (!value) return "";
+  const date = new Date(`${value}T00:00:00`);
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short", weekday: "short" });
+}
+
+const timeOptions = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30"];
 
 function CommunityEmptyState({ onCreate }: { onCreate: () => void }) {
   const pulse = useRef(new Animated.Value(0)).current;
@@ -88,7 +102,7 @@ function CommunityEmptyState({ onCreate }: { onCreate: () => void }) {
 
 export default function CommunityScreen() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
   const [featuredPost, setFeaturedPost] = useState<CommunityPost | null>(null);
   const [eventDraft, setEventDraft] = useState(emptyEvent);
@@ -99,6 +113,20 @@ export default function CommunityScreen() {
   const [error, setError] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const sheetY = useRef(new Animated.Value(520)).current;
+  const dateOptions = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, index) => {
+        const date = new Date();
+        date.setDate(date.getDate() + index);
+        return {
+          value: dateValue(date),
+          weekday: date.toLocaleDateString(undefined, { weekday: "short" }),
+          day: date.toLocaleDateString(undefined, { day: "numeric" }),
+          month: date.toLocaleDateString(undefined, { month: "short" })
+        };
+      }),
+    []
+  );
   const mostLiked = useMemo(() => {
     if (featuredPost) return featuredPost;
     return [...communityPosts].sort((a, b) => b.likeCount - a.likeCount)[0] ?? null;
@@ -216,10 +244,11 @@ export default function CommunityScreen() {
       router.push("/(auth)/login");
       return;
     }
-    if (!eventDraft.title.trim() || !eventDraft.summary.trim() || !eventDraft.body.trim() || !eventDraft.dateLabel.trim()) {
-      setError("Add a title, short summary, event details, and date.");
+    if (!eventDraft.title.trim() || !eventDraft.summary.trim() || !eventDraft.body.trim() || !eventDraft.eventDate || !eventDraft.eventTime || !eventDraft.venue.trim()) {
+      setError("Add a title, summary, details, date, time, and venue.");
       return;
     }
+    const dateLabel = `${shortDateLabel(eventDraft.eventDate)} - ${eventDraft.eventTime}`;
 
     setIsPosting(true);
     try {
@@ -228,7 +257,10 @@ export default function CommunityScreen() {
           title: eventDraft.title.trim(),
           summary: eventDraft.summary.trim(),
           body: eventDraft.body.trim(),
-          dateLabel: eventDraft.dateLabel.trim(),
+          dateLabel,
+          eventDate: eventDraft.eventDate,
+          eventTime: eventDraft.eventTime,
+          venue: eventDraft.venue.trim(),
           type: "event",
           ...(eventImage ? { image: eventImage } : {})
         },
@@ -293,17 +325,55 @@ export default function CommunityScreen() {
     }
   }
 
+  function confirmDeletePost(post: CommunityPost) {
+    if (!token) return;
+
+    Alert.alert("Delete post?", "This community post and its comments will be removed.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteCommunityPost(post.id, token);
+            setCommunityPosts((current) => current.filter((item) => item.id !== post.id));
+            setFeaturedPost((current) => (current?.id === post.id ? null : current));
+            setMessage("Community post deleted.");
+          } catch (caught) {
+            setError(caught instanceof ApiError ? caught.message : "Could not delete this post.");
+          }
+        }
+      }
+    ]);
+  }
+
   function renderPost({ item }: { item: CommunityPost }) {
+    const viewerId = user?.id ?? user?._id;
+    const canDelete = Boolean(viewerId && item.authorId === viewerId);
+
     return (
       <View style={styles.post}>
         {item.imageUrl ? <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" /> : null}
         <View style={styles.postContent}>
           <View style={styles.postHeader}>
             <Badge label={item.type} tone={item.type === "event" ? "accent" : "light"} />
-            <Text style={styles.date}>{item.dateLabel}</Text>
+            <View style={styles.postHeaderActions}>
+              <Text style={styles.date}>{item.dateLabel}</Text>
+              {canDelete ? (
+                <Pressable accessibilityLabel="Delete community post" onPress={() => confirmDeletePost(item)} style={styles.deleteButton}>
+                  <Feather name="trash-2" size={17} color={colors.danger} />
+                </Pressable>
+              ) : null}
+            </View>
           </View>
           <Text style={styles.postTitle}>{item.title}</Text>
           <Text style={styles.summary}>{item.summary}</Text>
+          {item.venue ? (
+            <View style={styles.venueRow}>
+              <Feather name="map-pin" size={14} color={colors.muted} />
+              <Text numberOfLines={1} style={styles.venueText}>{item.venue}</Text>
+            </View>
+          ) : null}
           {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
           <Text style={styles.author}>Posted by {item.authorName ?? "Campus member"}</Text>
 
@@ -367,6 +437,7 @@ export default function CommunityScreen() {
                       <FontAwesome name="heart" size={15} color={colors.white} />
                       <Text style={styles.heroMetaText}>{mostLiked.likeCount} likes</Text>
                       <Text style={styles.heroMetaText}>{mostLiked.dateLabel}</Text>
+                      {mostLiked.venue ? <Text numberOfLines={1} style={styles.heroMetaText}>{mostLiked.venue}</Text> : null}
                     </View>
                   </View>
                 </View>
@@ -412,14 +483,59 @@ export default function CommunityScreen() {
               )}
             </Pressable>
 
-            <TextInput placeholder="Event title" placeholderTextColor={colors.subtle} style={styles.input} value={eventDraft.title} onChangeText={(title) => setEventDraft((current) => ({ ...current, title }))} />
-            <TextInput placeholder="Short summary" placeholderTextColor={colors.subtle} style={styles.input} value={eventDraft.summary} onChangeText={(summary) => setEventDraft((current) => ({ ...current, summary }))} />
-            <TextInput placeholder="Date, time, or venue" placeholderTextColor={colors.subtle} style={styles.input} value={eventDraft.dateLabel} onChangeText={(dateLabel) => setEventDraft((current) => ({ ...current, dateLabel }))} />
-            <TextInput multiline placeholder="Event details" placeholderTextColor={colors.subtle} style={[styles.input, styles.bodyInput]} textAlignVertical="top" value={eventDraft.body} onChangeText={(body) => setEventDraft((current) => ({ ...current, body }))} />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetFields}>
+              <TextInput placeholder="Event title" placeholderTextColor={colors.subtle} style={styles.input} value={eventDraft.title} onChangeText={(title) => setEventDraft((current) => ({ ...current, title }))} />
+              <TextInput placeholder="Short summary" placeholderTextColor={colors.subtle} style={styles.input} value={eventDraft.summary} onChangeText={(summary) => setEventDraft((current) => ({ ...current, summary }))} />
 
-            <Pressable accessibilityRole="button" disabled={isPosting} onPress={submitEvent} style={[styles.primaryButton, isPosting && styles.disabled]}>
-              <Text style={styles.primaryText}>{isPosting ? "Posting..." : "Publish Event"}</Text>
-            </Pressable>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Date</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateOptions}>
+                  {dateOptions.map((option) => {
+                    const selected = eventDraft.eventDate === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        onPress={() => setEventDraft((current) => ({ ...current, eventDate: option.value }))}
+                        style={[styles.dateChip, selected && styles.dateChipActive]}
+                      >
+                        <Text style={[styles.dateChipWeekday, selected && styles.dateChipTextActive]}>{option.weekday}</Text>
+                        <Text style={[styles.dateChipDay, selected && styles.dateChipTextActive]}>{option.day}</Text>
+                        <Text style={[styles.dateChipMonth, selected && styles.dateChipTextActive]}>{option.month}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Time</Text>
+                <View style={styles.timeGrid}>
+                  {timeOptions.map((time) => {
+                    const selected = eventDraft.eventTime === time;
+                    return (
+                      <Pressable
+                        key={time}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        onPress={() => setEventDraft((current) => ({ ...current, eventTime: time }))}
+                        style={[styles.timeChip, selected && styles.timeChipActive]}
+                      >
+                        <Text style={[styles.timeChipText, selected && styles.timeChipTextActive]}>{time}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <TextInput placeholder="Venue, building, or meeting point" placeholderTextColor={colors.subtle} style={styles.input} value={eventDraft.venue} onChangeText={(venue) => setEventDraft((current) => ({ ...current, venue }))} />
+              <TextInput multiline placeholder="Event details" placeholderTextColor={colors.subtle} style={[styles.input, styles.bodyInput]} textAlignVertical="top" value={eventDraft.body} onChangeText={(body) => setEventDraft((current) => ({ ...current, body }))} />
+
+              <Pressable accessibilityRole="button" disabled={isPosting} onPress={submitEvent} style={[styles.primaryButton, isPosting && styles.disabled]}>
+                <Text style={styles.primaryText}>{isPosting ? "Posting..." : "Publish Event"}</Text>
+              </Pressable>
+            </ScrollView>
           </Animated.View>
         </View>
       </Modal>
@@ -527,6 +643,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between"
   },
+  postHeaderActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs
+  },
+  deleteButton: {
+    alignItems: "center",
+    height: 34,
+    justifyContent: "center",
+    width: 34
+  },
   postTitle: {
     color: colors.ink,
     fontSize: 18,
@@ -536,6 +663,17 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
     lineHeight: 21
+  },
+  venueRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs
+  },
+  venueText: {
+    color: colors.muted,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700"
   },
   body: {
     color: colors.muted,
@@ -647,6 +785,10 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xl
   },
+  sheetFields: {
+    gap: spacing.md,
+    paddingBottom: spacing.sm
+  },
   sheetHandle: {
     alignSelf: "center",
     backgroundColor: colors.line,
@@ -710,6 +852,81 @@ const styles = StyleSheet.create({
     color: colors.ink,
     minHeight: 46,
     paddingHorizontal: spacing.md
+  },
+  fieldGroup: {
+    gap: spacing.sm
+  },
+  fieldLabel: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  dateOptions: {
+    gap: spacing.sm,
+    paddingRight: spacing.lg
+  },
+  dateChip: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 74,
+    paddingHorizontal: spacing.md,
+    width: 72
+  },
+  dateChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent
+  },
+  dateChipWeekday: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase"
+  },
+  dateChipDay: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: "900",
+    lineHeight: 26
+  },
+  dateChipMonth: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase"
+  },
+  dateChipTextActive: {
+    color: colors.white
+  },
+  timeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm
+  },
+  timeChip: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderColor: colors.line,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: spacing.md
+  },
+  timeChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent
+  },
+  timeChipText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  timeChipTextActive: {
+    color: colors.white
   },
   bodyInput: {
     minHeight: 96,

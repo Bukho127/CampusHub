@@ -24,6 +24,13 @@ function serializePost(post: any, viewerId?: string) {
   };
 }
 
+function assertPostOwnerOrAdmin(post: any, userId: string, role: string) {
+  if (role === "admin") return;
+  if (String(post.author) !== userId && String(post.author?._id) !== userId) {
+    throw new AppError("Only the post owner can perform this action", 403);
+  }
+}
+
 export const getCommunityPosts = asyncHandler(async (req: Request, res: Response) => {
   const posts = await CommunityPost.find().populate(communityPopulate).sort({ createdAt: -1 });
   const serialized = posts.map((post) => serializePost(post, req.user?.id));
@@ -87,4 +94,17 @@ export const addCommunityPostComment = asyncHandler(async (req: Request, res: Re
   await post.save();
   await post.populate(communityPopulate);
   sendSuccess(res, { post: serializePost(post, req.user?.id) }, "Comment added", 201);
+});
+
+export const deleteCommunityPost = asyncHandler(async (req: Request, res: Response) => {
+  const post = await CommunityPost.findById(req.params.id);
+
+  if (!post) {
+    throw new AppError("Community post not found", 404);
+  }
+
+  assertPostOwnerOrAdmin(post, req.user?.id ?? "", req.user?.role ?? "user");
+  await post.deleteOne();
+
+  sendSuccess(res, null, "Community post deleted");
 });

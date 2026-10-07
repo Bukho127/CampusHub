@@ -99,8 +99,12 @@ export type CommunityPost = {
   body?: string;
   type: "announcement" | "event" | "service";
   dateLabel: string;
+  eventDate?: string;
+  eventTime?: string;
+  venue?: string;
   imageUrl?: string;
   imageAlt?: string;
+  authorId?: string;
   authorName?: string;
   likeCount: number;
   commentCount: number;

@@ -7,6 +7,9 @@ export type CommunityPostPayload = {
   body: string;
   type: "announcement" | "event" | "service";
   dateLabel: string;
+  eventDate?: string;
+  eventTime?: string;
+  venue?: string;
   image?: {
     uri: string;
     name: string;
@@ -31,6 +34,9 @@ export async function createCommunityPostApi(payload: CommunityPostPayload, toke
   formData.append("body", payload.body);
   formData.append("type", payload.type);
   formData.append("dateLabel", payload.dateLabel);
+  if (payload.eventDate) formData.append("eventDate", payload.eventDate);
+  if (payload.eventTime) formData.append("eventTime", payload.eventTime);
+  if (payload.venue) formData.append("venue", payload.venue);
   if (payload.image) {
     formData.append("image", payload.image as unknown as Blob);
   }
@@ -58,4 +64,11 @@ export async function addCommunityPostCommentApi(id: string, body: string, token
     body: JSON.stringify({ body })
   });
   return response.data.post;
+}
+
+export async function deleteCommunityPostApi(id: string, token: string) {
+  await apiRequest<null>(`/community-posts/${id}`, {
+    method: "DELETE",
+    token
+  });
 }
