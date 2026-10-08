@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
+import { rememberWithStatus, setCacheStatusHeader } from "../config/cache";
 import { CommunityPost } from "../models/CommunityPost";
 import { fileToStoredImage } from "../services/uploadService";
 import { AppError } from "../utils/AppError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
+import { cacheKey, invalidateCommunity } from "../utils/cacheKeys";
 
 const communityPopulate = [
   { path: "author", select: "displayName identityType location avatar" },
@@ -32,21 +34,41 @@ function assertPostOwnerOrAdmin(post: any, userId: string, role: string) {
 }
 
 export const getCommunityPosts = asyncHandler(async (req: Request, res: Response) => {
-  const posts = await CommunityPost.find().populate(communityPopulate).sort({ createdAt: -1 });
-  const serialized = posts.map((post) => serializePost(post, req.user?.id));
-  const featuredPost = [...serialized].sort((a, b) => b.likeCount - a.likeCount || Date.parse(b.createdAt) - Date.parse(a.createdAt))[0] ?? null;
+  const viewerId = req.user?.id ?? "anon";
+  const cacheResult = await rememberWithStatus(
+    cacheKey("community", `list:${viewerId}`),
+    30,
+    async () => {
+      const posts = await CommunityPost.find().populate(communityPopulate).sort({ createdAt: -1 });
+      const serialized = posts.map((post) => serializePost(post, req.user?.id));
+      const featuredPost = [...serialized].sort((a, b) => b.likeCount - a.likeCount || Date.parse(b.createdAt) - Date.parse(a.createdAt))[0] ?? null;
 
-  sendSuccess(res, { posts: serialized, featuredPost });
+      return { posts: serialized, featuredPost };
+    }
+  );
+
+  setCacheStatusHeader(res, cacheResult.status);
+  sendSuccess(res, cacheResult.value);
 });
 
 export const getCommunityPost = asyncHandler(async (req: Request, res: Response) => {
-  const post = await CommunityPost.findById(req.params.id).populate(communityPopulate);
+  const viewerId = req.user?.id ?? "anon";
+  const cacheResult = await rememberWithStatus(
+    cacheKey("community-post", `${req.params.id}:${viewerId}`),
+    30,
+    async () => {
+      const post = await CommunityPost.findById(req.params.id).populate(communityPopulate);
 
-  if (!post) {
-    throw new AppError("Community post not found", 404);
-  }
+      if (!post) {
+        throw new AppError("Community post not found", 404);
+      }
 
-  sendSuccess(res, { post: serializePost(post, req.user?.id) });
+      return { post: serializePost(post, req.user?.id) };
+    }
+  );
+
+  setCacheStatusHeader(res, cacheResult.status);
+  sendSuccess(res, cacheResult.value);
 });
 
 export const createCommunityPost = asyncHandler(async (req: Request, res: Response) => {
@@ -57,6 +79,7 @@ export const createCommunityPost = asyncHandler(async (req: Request, res: Respon
   });
 
   await post.populate(communityPopulate);
+  invalidateCommunity();
   sendSuccess(res, { post: serializePost(post, req.user?.id) }, "Community post created", 201);
 });
 
@@ -77,6 +100,7 @@ export const toggleCommunityPostLike = asyncHandler(async (req: Request, res: Re
 
   await post.save();
   await post.populate(communityPopulate);
+  invalidateCommunity();
   sendSuccess(res, { post: serializePost(post, userId) }, liked ? "Post unliked" : "Post liked");
 });
 
@@ -93,6 +117,7 @@ export const addCommunityPostComment = asyncHandler(async (req: Request, res: Re
   });
   await post.save();
   await post.populate(communityPopulate);
+  invalidateCommunity();
   sendSuccess(res, { post: serializePost(post, req.user?.id) }, "Comment added", 201);
 });
 
@@ -105,6 +130,7 @@ export const deleteCommunityPost = asyncHandler(async (req: Request, res: Respon
 
   assertPostOwnerOrAdmin(post, req.user?.id ?? "", req.user?.role ?? "user");
   await post.deleteOne();
+  invalidateCommunity();
 
   sendSuccess(res, null, "Community post deleted");
 });

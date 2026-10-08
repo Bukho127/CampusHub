@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { rememberWithStatus, setCacheStatusHeader } from "../config/cache";
 import { Listing } from "../models/Listing";
 import { Review } from "../models/Review";
 import { User } from "../models/User";
@@ -6,37 +7,65 @@ import { fileToPublicUploadUrl } from "../services/uploadService";
 import { AppError } from "../utils/AppError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
+import { cacheKey, invalidateSeller } from "../utils/cacheKeys";
 
 const publicSellerFields = "displayName identityType role emailVerificationStatus emailVerified vendorVerificationStatus campusEmailVerificationStatus campusEmailVerifiedAt rating reviewCount location avatar createdAt";
 
 export const getPublicUser = asyncHandler(async (req: Request, res: Response) => {
-  const user = await User.findById(req.params.id).select(publicSellerFields);
+  const cacheResult = await rememberWithStatus(
+    cacheKey("public-user", req.params.id),
+    5 * 60,
+    async () => {
+      const user = await User.findById(req.params.id).select(publicSellerFields);
 
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
 
-  sendSuccess(res, { user });
+      return { user };
+    }
+  );
+
+  setCacheStatusHeader(res, cacheResult.status);
+  sendSuccess(res, cacheResult.value);
 });
 export const getSeller = asyncHandler(async (req: Request, res: Response) => {
-  const seller = await User.findById(req.params.id).select(publicSellerFields);
+  const cacheResult = await rememberWithStatus(
+    cacheKey("seller", req.params.id),
+    2 * 60,
+    async () => {
+      const seller = await User.findById(req.params.id).select(publicSellerFields);
 
-  if (!seller) {
-    throw new AppError("Seller not found", 404);
-  }
+      if (!seller) {
+        throw new AppError("Seller not found", 404);
+      }
 
-  sendSuccess(res, { seller });
+      return { seller };
+    }
+  );
+
+  setCacheStatusHeader(res, cacheResult.status);
+  sendSuccess(res, cacheResult.value);
 });
 
 export const getSellerListings = asyncHandler(async (req: Request, res: Response) => {
-  const seller = await User.findById(req.params.id).select("_id");
+  const cacheResult = await rememberWithStatus(
+    cacheKey("seller-listings", req.params.id),
+    2 * 60,
+    async () => {
+      const seller = await User.findById(req.params.id).select("_id");
 
-  if (!seller) {
-    throw new AppError("Seller not found", 404);
-  }
+      if (!seller) {
+        throw new AppError("Seller not found", 404);
+      }
 
-  const listings = await Listing.find({ seller: seller._id, status: "active" }).sort({ createdAt: -1 });
-  sendSuccess(res, { listings });
+      const listings = await Listing.find({ seller: seller._id, status: "active" }).sort({ createdAt: -1 });
+      return { listings };
+    }
+  );
+
+  setCacheStatusHeader(res, cacheResult.status);
+  sendSuccess(res, cacheResult.value);
 });
 
 export const updateMe = asyncHandler(async (req: Request, res: Response) => {
@@ -49,6 +78,7 @@ export const updateMe = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("User not found", 404);
   }
 
+  invalidateSeller(user._id.toString());
   sendSuccess(res, { user }, "Profile updated");
 });
 
@@ -67,6 +97,7 @@ export const updateMyAvatar = asyncHandler(async (req: Request, res: Response) =
     throw new AppError("User not found", 404);
   }
 
+  invalidateSeller(user._id.toString());
   sendSuccess(res, { user }, "Profile photo updated");
 });
 

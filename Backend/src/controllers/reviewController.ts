@@ -1,20 +1,31 @@
 import type { Request, Response } from "express";
+import { rememberWithStatus, setCacheStatusHeader } from "../config/cache";
 import { Review } from "../models/Review";
 import { User } from "../models/User";
 import { AppError } from "../utils/AppError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
+import { cacheKey, invalidateReviews } from "../utils/cacheKeys";
 
 export const getSellerReviews = asyncHandler(async (req: Request, res: Response) => {
-  const seller = await User.findById(req.params.id).select("_id");
-  if (!seller) throw new AppError("Seller not found", 404);
+  const cacheResult = await rememberWithStatus(
+    cacheKey("reviews", `seller:${req.params.id}`),
+    2 * 60,
+    async () => {
+      const seller = await User.findById(req.params.id).select("_id");
+      if (!seller) throw new AppError("Seller not found", 404);
 
-  const reviews = await Review.find({ seller: seller._id })
-    .populate("reviewer", "displayName")
-    .sort({ createdAt: -1 })
-    .limit(50);
+      const reviews = await Review.find({ seller: seller._id })
+        .populate("reviewer", "displayName")
+        .sort({ createdAt: -1 })
+        .limit(50);
 
-  sendSuccess(res, { reviews });
+      return { reviews };
+    }
+  );
+
+  setCacheStatusHeader(res, cacheResult.status);
+  sendSuccess(res, cacheResult.value);
 });
 
 export const createSellerReview = asyncHandler(async (req: Request, res: Response) => {
@@ -57,6 +68,7 @@ export const createSellerReview = asyncHandler(async (req: Request, res: Respons
     }
   });
   await review.populate("reviewer", "displayName");
+  invalidateReviews(seller._id.toString());
 
   sendSuccess(res, { review }, "Review submitted", 201);
 });
