@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CategoryChip } from "../../src/components/CategoryChip";
@@ -45,21 +45,16 @@ export default function ExploreScreen() {
     setCategoryId(params.category ?? "all");
   }, [params.category]);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
+  useEffect(() => {
+    Promise.all([getCategories(), getSellers()]).then(([categories, sellers]) => {
+      setCategories(categories);
+      setSellers(sellers);
+    });
+  }, []);
 
-      getCategories().then((items) => { if (active) setCategories(items); }).catch(() => { if (active) setCategories([]); });
-      getSellers().then((items) => { if (active) setSellers(items); }).catch(() => { if (active) setSellers([]); });
-      getListings({ query, categoryId, sort, condition, sellerType, minRating })
-        .then((items) => { if (active) setResults(items); })
-        .catch(() => { if (active) setResults([]); });
-
-      return () => {
-        active = false;
-      };
-    }, [query, categoryId, sort, condition, sellerType, minRating])
-  );
+  useEffect(() => {
+    getListings({ query, categoryId, sort, condition, sellerType, minRating }).then(setResults);
+  }, [query, categoryId, sort, condition, sellerType, minRating]);
 
   function resetFilters() {
     setCondition(undefined);
