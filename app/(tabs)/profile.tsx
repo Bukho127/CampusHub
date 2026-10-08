@@ -3,12 +3,13 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../src/api/client";
 import { uploadProfileAvatar } from "../../src/api/authApi";
 import { ProfileAvatar } from "../../src/components/ProfileAvatar";
 import { useAuth } from "../../src/contexts/AuthContext";
+import { useToast } from "../../src/contexts/ToastContext";
 import { colors, radii, spacing } from "../../src/theme/theme";
 
 const profileBanner = require("../../assets/hero-market.png");
@@ -57,10 +58,12 @@ function MenuRow({ icon, label, onPress, value }: { icon: FeatherName; label: st
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { isAuthenticated, logout, refreshUser, token, user } = useAuth();
+  const { deleteAccount, isAuthenticated, logout, refreshUser, token, user } = useAuth();
+  const { showToast } = useToast();
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarError, setAvatarError] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   async function chooseAvatar() {
     setAvatarMessage("");
@@ -101,6 +104,42 @@ export default function ProfileScreen() {
     } finally {
       setIsUploadingAvatar(false);
     }
+  }
+
+  function handleLogout() {
+    logout();
+    showToast({ title: "Signed out", message: "You have been logged out of CampusHub." });
+    router.replace("/(auth)/login");
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      "Delete account?",
+      "This removes your CampusHub account, listings, favorites, reviews, and community activity. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeletingAccount(true);
+            try {
+              await deleteAccount();
+              showToast({ title: "Account deleted", message: "Your CampusHub account has been removed.", tone: "success" });
+              router.replace("/(auth)/register");
+            } catch (caught) {
+              showToast({
+                title: "Could not delete account",
+                message: caught instanceof ApiError ? caught.message : "Please try again in a moment.",
+                tone: "danger"
+              });
+            } finally {
+              setIsDeletingAccount(false);
+            }
+          }
+        }
+      ]
+    );
   }
 
   if (!isAuthenticated || !user) {
@@ -171,14 +210,23 @@ export default function ProfileScreen() {
         <MenuCard title="Manage Listing">
           <MenuRow icon="package" label="List your items" onPress={() => router.push("/(tabs)/sell")} />
           {userId ? <MenuRow icon="user-check" label="View seller profile" onPress={() => router.push(`/seller/${userId}`)} /> : null}
-          <MenuRow
-            icon="log-out"
-            label="Logout"
-            onPress={() => {
-              logout();
-              router.replace("/(auth)/login");
-            }}
-          />
+        </MenuCard>
+
+        <MenuCard title="Account">
+          <Pressable accessibilityRole="button" onPress={handleLogout} style={styles.logoutButton}>
+            <Feather name="log-out" size={19} color={colors.white} />
+            <Text style={styles.logoutButtonText}>Sign out</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={isDeletingAccount}
+            onPress={confirmDeleteAccount}
+            style={[styles.deleteAccountButton, isDeletingAccount && styles.disabled]}
+          >
+            <Feather name="trash-2" size={18} color={colors.danger} />
+            <Text style={styles.deleteAccountText}>{isDeletingAccount ? "Deleting account..." : "Delete account"}</Text>
+          </Pressable>
+          <Text style={styles.deleteAccountHint}>Permanently removes your profile and marketplace activity.</Text>
         </MenuCard>
       </ScrollView>
     </SafeAreaView>
@@ -332,6 +380,43 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19
+  },
+  logoutButton: {
+    alignItems: "center",
+    backgroundColor: colors.ink,
+    borderRadius: radii.pill,
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "center",
+    minHeight: 50,
+    paddingHorizontal: spacing.lg
+  },
+  logoutButtonText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  deleteAccountButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: spacing.lg
+  },
+  deleteAccountText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  deleteAccountHint: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center"
   },
   textButton: {
     alignItems: "center",

@@ -1,5 +1,5 @@
 import { createContext, PropsWithChildren, useContext, useMemo, useState } from "react";
-import { getMe, login as loginApi, register as registerApi, type LoginPayload, type RegisterPayload } from "../api/authApi";
+import { deleteAccount as deleteAccountApi, getMe, login as loginApi, register as registerApi, type LoginPayload, type RegisterPayload } from "../api/authApi";
 import type { BackendUser } from "../api/types";
 
 type AuthContextValue = {
@@ -10,6 +10,7 @@ type AuthContextValue = {
   register: (payload: RegisterPayload) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => void;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -37,6 +38,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (token) setUser(await getMe(token));
       },
       logout: () => {
+        setUser(null);
+        setToken(null);
+      },
+      deleteAccount: async () => {
+        if (!token) return;
+        await deleteAccountApi(token);
         setUser(null);
         setToken(null);
       }

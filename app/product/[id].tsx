@@ -12,6 +12,7 @@ import { EmptyState } from "../../src/components/EmptyState";
 import { ProfileAvatar } from "../../src/components/ProfileAvatar";
 import { ProductCard } from "../../src/components/ProductCard";
 import { useCart } from "../../src/contexts/CartContext";
+import { useToast } from "../../src/contexts/ToastContext";
 import type { Listing, Seller } from "../../src/models/marketplace";
 import { getListingById, getListings, getSellerById } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
@@ -25,6 +26,7 @@ export default function ProductDetailScreen() {
   const [similar, setSimilar] = useState<Listing[]>([]);
   const [loaded, setLoaded] = useState(false);
   const { addItem, getAvailableQuantity, getQuantity, isSoldOut } = useCart();
+  const { showToast } = useToast();
 
   useEffect(() => {
     async function load() {
@@ -143,6 +145,11 @@ export default function ProductDetailScreen() {
               return;
             }
             addItem(listing);
+            showToast({
+              title: "Added to basket",
+              message: `${listing.title} is now in your cart.`,
+              tone: "success"
+            });
           }}
           disabled={soldOut || reachedQuantityLimit}
           style={[styles.primaryAction, (soldOut || reachedQuantityLimit) && styles.primaryActionDisabled]}

@@ -6,6 +6,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from "../../src/components/EmptyState";
 import { useCart } from "../../src/contexts/CartContext";
+import { useToast } from "../../src/contexts/ToastContext";
 import { colors, radii, spacing } from "../../src/theme/theme";
 import { formatRand } from "../../src/utils/money";
 
@@ -14,6 +15,7 @@ const snapBlue = "#00AEEF";
 export default function SnapScanPaymentScreen() {
   const router = useRouter();
   const { completeOrder, itemCount, items, subtotalCents } = useCart();
+  const { showToast } = useToast();
   const [permission, requestPermission] = useCameraPermissions();
   const [torchOn, setTorchOn] = useState(false);
   const [scannedData, setScannedData] = useState<string | null>(null);
@@ -25,6 +27,11 @@ export default function SnapScanPaymentScreen() {
         text: "Done",
         onPress: () => {
           completeOrder();
+          showToast({
+            title: "Payment complete",
+            message: "SnapScan payment was successful. Your basket is now clear.",
+            tone: "success"
+          });
           router.replace("/(tabs)");
         }
       }

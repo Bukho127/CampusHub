@@ -76,3 +76,10 @@ export async function getMe(token: string) {
   const response = await apiRequest<{ user: BackendUser }>("/auth/me", { token });
   return response.data.user;
 }
+
+export async function deleteAccount(token: string) {
+  await apiRequest<null>("/users/me", {
+    method: "DELETE",
+    token
+  });
+}
