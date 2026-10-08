@@ -1,7 +1,7 @@
 import { Feather, FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { Alert, Animated, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from "../src/components/EmptyState";
 import { useCart } from "../src/contexts/CartContext";
@@ -44,6 +44,8 @@ export default function CheckoutScreen() {
     name: "",
     number: ""
   });
+  const cardSheetTranslateY = useRef(new Animated.Value(0)).current;
+  const cardSheetClosing = useRef(false);
 
   const provider = useMemo(
     () => paymentProviders.find((method) => method.id === selectedMethod) ?? defaultPaymentProvider,
@@ -53,6 +55,51 @@ export default function CheckoutScreen() {
   const cardNumberDigits = cardForm.number.replace(/\D/g, "");
   const cardReady = cardNumberDigits.length >= 12 && cardForm.name.trim().length > 2 && cardForm.expiry.length === 5 && cardForm.cvv.length >= 3;
   const selectedBankProvider = bankProviders.find((item) => item.id === selectedBank) ?? defaultBankProvider;
+  const closeCardSheet = () => {
+    if (cardSheetClosing.current) return;
+    cardSheetClosing.current = true;
+    Animated.timing(cardSheetTranslateY, {
+      duration: 180,
+      toValue: 720,
+      useNativeDriver: true
+    }).start(() => {
+      cardSheetTranslateY.setValue(0);
+      cardSheetClosing.current = false;
+      setCardSheetOpen(false);
+    });
+  };
+  const cardSheetPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        gestureState.dy > 8 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+      onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+        gestureState.dy > 8 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+      onPanResponderMove: (_, gestureState) => {
+        cardSheetTranslateY.setValue(Math.max(0, gestureState.dy));
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 96 || gestureState.vy > 0.85) {
+          closeCardSheet();
+          return;
+        }
+
+        Animated.spring(cardSheetTranslateY, {
+          bounciness: 4,
+          speed: 18,
+          toValue: 0,
+          useNativeDriver: true
+        }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(cardSheetTranslateY, {
+          bounciness: 4,
+          speed: 18,
+          toValue: 0,
+          useNativeDriver: true
+        }).start();
+      }
+    })
+  ).current;
 
   const updateCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
@@ -73,6 +120,8 @@ export default function CheckoutScreen() {
     }
 
     if (selectedMethod === "card") {
+      cardSheetClosing.current = false;
+      cardSheetTranslateY.setValue(0);
       setCardSheetOpen(true);
       return;
     }
@@ -223,11 +272,20 @@ export default function CheckoutScreen() {
         </View>
       )}
 
-      <Modal animationType="slide" onRequestClose={() => setCardSheetOpen(false)} transparent visible={cardSheetOpen}>
+      <Modal animationType="none" onRequestClose={closeCardSheet} transparent visible={cardSheetOpen}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalRoot}>
-          <Pressable accessibilityLabel="Close card form" onPress={() => setCardSheetOpen(false)} style={styles.backdrop} />
-          <View style={styles.cardSheet}>
-            <View style={styles.sheetHandle} />
+          <Pressable accessibilityLabel="Close card form" onPress={closeCardSheet} style={styles.backdrop} />
+          <Animated.View
+            style={[styles.cardSheet, { transform: [{ translateY: cardSheetTranslateY }] }]}
+            {...cardSheetPanResponder.panHandlers}
+          >
+            <View
+              accessibilityLabel="Drag down to close card form"
+              accessibilityRole="adjustable"
+              style={styles.sheetDragArea}
+            >
+              <View style={styles.sheetHandle} />
+            </View>
             <ScrollView contentContainerStyle={styles.cardSheetContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View style={styles.sheetHeader}>
                 <View>
@@ -335,7 +393,7 @@ export default function CheckoutScreen() {
                 <Text style={styles.submitCardText}>Pay {formatRand(subtotalCents)}</Text>
               </Pressable>
             </ScrollView>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
@@ -634,12 +692,17 @@ const styles = StyleSheet.create({
   cardSheetContent: {
     gap: spacing.md
   },
+  sheetDragArea: {
+    alignItems: "center",
+    marginHorizontal: -spacing.lg,
+    paddingBottom: spacing.sm,
+    paddingTop: spacing.xs
+  },
   sheetHandle: {
     alignSelf: "center",
     backgroundColor: colors.line,
     borderRadius: radii.pill,
     height: 5,
-    marginBottom: spacing.xs,
     width: 48
   },
   sheetHeader: {

@@ -32,7 +32,8 @@ export function CartProvider({ children }: PropsWithChildren) {
     const getAvailableQuantity = (listing: Listing) => {
       if (listing.type === "service") return 0;
       if (listing.status === "sold") return 0;
-      return Math.max(0, listing.quantityAvailable - (purchasedQuantities[listing.id] ?? 0));
+      const listedQuantity = Number.isFinite(listing.quantityAvailable) ? listing.quantityAvailable : 1;
+      return Math.max(0, listedQuantity - (purchasedQuantities[listing.id] ?? 0));
     };
 
     return {

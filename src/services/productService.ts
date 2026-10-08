@@ -118,7 +118,7 @@ function mapListing(listing: BackendListing): Listing {
     type: "goods",
     condition: listing.condition ?? "Good",
       dietaryTags: listing.dietaryTags ?? [],
-    quantityAvailable: listing.quantityAvailable ?? 0,
+    quantityAvailable: listing.quantityAvailable ?? 1,
     tradeEnabled: listing.tradeEnabled
   };
 }
