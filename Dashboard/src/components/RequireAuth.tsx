@@ -22,6 +22,10 @@ export default function RequireAuth({ role }: { role?: DashboardRole }) {
     return <Navigate to={`/${user.role}/overview`} replace />;
   }
 
+  if (user.role === "user" && user.identityType !== "student") {
+    return <Navigate to="/login" replace />;
+  }
+
   const isPendingVendor =
     user.role === "vendor" && user.vendorVerificationStatus !== "verified";
 

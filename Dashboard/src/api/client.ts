@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const baseURL =
+  import.meta.env.DEV ? "/api" :
   import.meta.env.VITE_API_BASE_URL ?? "https://campushub-backend-bukho-20261009.azurewebsites.net/api";
 
 export const apiClient = axios.create({

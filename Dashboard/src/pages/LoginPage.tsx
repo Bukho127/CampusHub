@@ -36,7 +36,7 @@ export default function LoginPage() {
           Welcome back
         </h1>
         <p className="text-[13px] leading-6 text-campus-muted">
-          Sign in with your admin or vendor account.
+          Sign in with your student, admin or vendor account.
         </p>
 
         <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
@@ -85,7 +85,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 border-t border-campus-line pt-4 text-center text-[11px] text-campus-muted">
-          Buyer accounts use the CampusHub mobile app.
+          Use the same credentials as your CampusHub mobile account.
         </p>
       </section>
     </main>

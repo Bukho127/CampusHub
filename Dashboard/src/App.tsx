@@ -27,6 +27,9 @@ const AdminHealthPage = lazy(() => import("./pages/AdminSystemPages").then((modu
 const AdminPromotionsPage = lazy(() => import("./pages/AdminSystemPages").then((module) => ({ default: module.AdminPromotionsPage })));
 const AdminReviewsPage = lazy(() => import("./pages/AdminReviewsPage"));
 const AdminSettingsPage = lazy(() => import("./pages/AdminSettingsPage"));
+const StudentOverviewPage = lazy(() => import("./pages/StudentPages").then((module) => ({ default: module.StudentOverviewPage })));
+const StudentOrdersPage = lazy(() => import("./pages/StudentPages").then((module) => ({ default: module.StudentOrdersPage })));
+const StudentProfilePage = lazy(() => import("./pages/StudentPages").then((module) => ({ default: module.StudentProfilePage })));
 
 function LoginRoute() {
   const { user, loading } = useAuth();
@@ -81,6 +84,15 @@ export default function App() {
     <Suspense fallback={<div className="grid min-h-[50vh] place-items-center text-sm text-campus-muted">Loading dashboard page…</div>}>
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
+
+      <Route element={<RequireAuth role="user" />}>
+        <Route path="/user" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<StudentOverviewPage />} />
+          <Route path="orders" element={<StudentOrdersPage />} />
+          <Route path="profile" element={<StudentProfilePage />} />
+        </Route>
+      </Route>
 
       <Route element={<RequireAuth role="vendor" />}>
         <Route path="/vendor" element={<DashboardLayout />}>

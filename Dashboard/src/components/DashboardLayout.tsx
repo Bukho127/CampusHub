@@ -47,6 +47,12 @@ const vendorNavigation = [
   ["profile", "Business profile"]
 ] as const;
 
+const studentNavigation = [
+  ["overview", "Overview"],
+  ["orders", "My purchases"],
+  ["profile", "My profile"]
+] as const;
+
 const adminNavigation = [
   ["overview", "Overview"],
   ["users", "Users"],
@@ -75,8 +81,10 @@ export default function DashboardLayout() {
   const isPendingVendor =
   user.role === "vendor" && user.vendorVerificationStatus !== "verified";
 
-const navigation = isPendingVendor ? ([["awaiting-verification", "Verification status"]] as const): user.role === "admin" ? adminNavigation : vendorNavigation;
-  const roleName = user.role === "admin" ? "Administrator" : "Vendor";
+  const navigation = isPendingVendor ? ([["awaiting-verification", "Verification status"]] as const)
+    : user.role === "admin" ? adminNavigation
+    : user.role === "user" ? studentNavigation : vendorNavigation;
+  const roleName = user.role === "admin" ? "Administrator" : user.role === "user" ? "Student" : "Vendor";
   const initials = user.displayName.slice(0, 1).toUpperCase();
 
   async function handleLogout() {
