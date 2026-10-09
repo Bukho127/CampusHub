@@ -16,13 +16,19 @@
       "assets/**/*"
     ],
     "ios": {
+      "bundleIdentifier": "com.campushub.app",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.campushub.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/campus-logo.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/campus-logo.png"
@@ -40,6 +46,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "afbd2bee-c58c-4977-8bf5-b42947f7d479"
+      }
     }
   }
 }

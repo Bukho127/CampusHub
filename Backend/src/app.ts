@@ -10,8 +10,10 @@ import { apiRouter } from "./routes";
 import { renderPasswordResetPage, submitPasswordResetPage } from "./controllers/authController";
 import { sendSuccess } from "./utils/apiResponse";
 
+const configuredOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean);
+const allowAnyOrigin = configuredOrigins.includes("*");
 const allowedOrigins = new Set([
-  ...env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter((origin) => origin && origin !== "*"),
+  ...configuredOrigins.filter((origin) => origin !== "*"),
   env.DASHBOARD_ORIGIN
 ]);
 
@@ -24,7 +26,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) {
+      if (!origin || allowAnyOrigin || allowedOrigins.has(origin)) {
         callback(null, true);
         return;
       }
