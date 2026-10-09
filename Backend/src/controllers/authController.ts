@@ -382,7 +382,7 @@ export const dashboardLogin = asyncHandler(async (req: Request, res: Response) =
   res.cookie(env.DASHBOARD_COOKIE_NAME, token, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: env.NODE_ENV === "production" ? "none" : "strict",
     path: "/api",
     maxAge: 60 * 60 * 1000
   });
@@ -394,13 +394,13 @@ export const dashboardLogout = asyncHandler(async (_req: Request, res: Response)
   res.clearCookie(env.DASHBOARD_COOKIE_NAME, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: env.NODE_ENV === "production" ? "none" : "strict",
     path: "/api"
   });
   res.clearCookie(env.DASHBOARD_STEPUP_COOKIE_NAME, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: env.NODE_ENV === "production" ? "none" : "strict",
     path: "/api"
   });
 
@@ -422,7 +422,7 @@ export const stepUp = asyncHandler(async (req: Request, res: Response) => {
   res.cookie(env.DASHBOARD_STEPUP_COOKIE_NAME, token, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: env.NODE_ENV === "production" ? "none" : "strict",
     path: "/api",
     maxAge: 5 * 60 * 1000
   });

@@ -11,6 +11,28 @@ type TokenPayload = {
   tokenVersion?: number;
 };
 
+const dashboardOrigins = new Set([
+  new URL(env.DASHBOARD_ORIGIN).origin,
+  ...(env.APP_BASE_URL ? [new URL(env.APP_BASE_URL).origin] : []),
+  ...env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter((origin) => origin && origin !== "*")
+]);
+
+function assertDashboardOrigin(req: Request) {
+  const origin = req.headers.origin;
+  if ((origin && !dashboardOrigins.has(origin)) || (!origin && req.headers["sec-fetch-site"] === "cross-site")) {
+    throw new AppError("Dashboard origin is not allowed", 403);
+  }
+}
+
+export function requireDashboardOrigin(req: Request, _res: Response, next: NextFunction) {
+  try {
+    assertDashboardOrigin(req);
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 function getDashboardCookie(req: Request): string | null {
   const prefix = `${env.DASHBOARD_COOKIE_NAME}=`;
   const value = req.headers.cookie
@@ -52,11 +74,14 @@ function setRequestUser(
 
 export const authenticate = asyncHandler(
   async (req: Request, _res: Response, next: NextFunction) => {
-    const token = getBearerToken(req) ?? getDashboardCookie(req);
+    const bearerToken = getBearerToken(req);
+    const token = bearerToken ?? getDashboardCookie(req);
 
     if (!token) {
       throw new AppError("Authentication required", 401);
     }
+
+    if (!bearerToken) assertDashboardOrigin(req);
 
     const payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
     const user = await User.findById(payload.sub).select(

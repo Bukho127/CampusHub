@@ -1,7 +1,7 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { confirmSchoolEmailCode, dashboardLogin, dashboardLogout, forgotPassword, login, logout, me, register, requestEmailVerification, requestSchoolEmailCode, resetPassword, stepUp } from "../controllers/authController";
-import { authenticate } from "../middleware/auth";
+import { authenticate, requireDashboardOrigin } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema, stepUpSchema, verifySchoolEmailCodeSchema, verifySchoolEmailRequestSchema } from "../validators/authValidators";
 
@@ -32,7 +32,7 @@ authRouter.post("/register", validate({ body: registerSchema }), register);
 authRouter.post("/login", validate({ body: loginSchema }), login);
 
 const dashboardLoginLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false});
-authRouter.post( "/dashboard/login", dashboardLoginLimit, validate({ body: loginSchema }), dashboardLogin );
+authRouter.post( "/dashboard/login", requireDashboardOrigin, dashboardLoginLimit, validate({ body: loginSchema }), dashboardLogin );
 
 authRouter.post("/dashboard/logout", authenticate, dashboardLogout);
 const stepUpLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false });
