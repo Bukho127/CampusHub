@@ -15,7 +15,7 @@ export const getSellerReviews = asyncHandler(async (req: Request, res: Response)
       const seller = await User.findById(req.params.id).select("_id");
       if (!seller) throw new AppError("Seller not found", 404);
 
-      const reviews = await Review.find({ seller: seller._id })
+      const reviews = await Review.find({ seller: seller._id, moderationStatus: { $ne: "hidden" } })
         .populate("reviewer", "displayName")
         .sort({ createdAt: -1 })
         .limit(50);
@@ -57,7 +57,7 @@ export const createSellerReview = asyncHandler(async (req: Request, res: Respons
   }
 
   const [aggregate] = await Review.aggregate([
-    { $match: { seller: seller._id } },
+    { $match: { seller: seller._id, moderationStatus: { $ne: "hidden" } } },
     { $group: { _id: "$seller", rating: { $avg: "$rating" }, reviewCount: { $sum: 1 } } }
   ]);
 

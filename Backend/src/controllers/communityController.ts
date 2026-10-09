@@ -39,7 +39,7 @@ export const getCommunityPosts = asyncHandler(async (req: Request, res: Response
     cacheKey("community", `list:${viewerId}`),
     30,
     async () => {
-      const posts = await CommunityPost.find().populate(communityPopulate).sort({ createdAt: -1 });
+      const posts = await CommunityPost.find({ moderationStatus: { $ne: "hidden" } }).populate(communityPopulate).sort({ createdAt: -1 });
       const serialized = posts.map((post) => serializePost(post, req.user?.id));
       const featuredPost = [...serialized].sort((a, b) => b.likeCount - a.likeCount || Date.parse(b.createdAt) - Date.parse(a.createdAt))[0] ?? null;
 

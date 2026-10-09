@@ -10,6 +10,9 @@ import { reportRouter } from "./reportRoutes";
 import { reviewRouter } from "./reviewRoutes";
 import { sellerRouter } from "./sellerRoutes";
 import { userRouter } from "./userRoutes";
+import { vendorRouter } from "./vendorRoutes";
+import { orderRouter } from "./orderRoutes";
+import { pollRouter } from "./pollRoutes";
 
 export const apiRouter = Router();
 
@@ -24,3 +27,6 @@ apiRouter.use("/community-posts", communityRouter);
 apiRouter.use("/reports", reportRouter);
 apiRouter.use("/reviews", reviewRouter);
 apiRouter.use("/admin", adminRouter);
+apiRouter.use("/vendor", vendorRouter);
+apiRouter.use("/orders", orderRouter);
+apiRouter.use("/polls", pollRouter);

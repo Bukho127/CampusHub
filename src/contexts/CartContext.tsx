@@ -1,5 +1,6 @@
 import { createContext, PropsWithChildren, useContext, useMemo, useState } from "react";
 import type { Listing } from "../models/marketplace";
+import { getEffectivePriceCents } from "../utils/pricing";
 
 export type CartItem = {
   listing: Listing;
@@ -28,7 +29,7 @@ export function CartProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<CartContextValue>(() => {
     const itemCount = items.reduce((total, item) => total + item.quantity, 0);
-    const subtotalCents = items.reduce((total, item) => total + item.listing.priceCents * item.quantity, 0);
+    const subtotalCents = items.reduce((total, item) => total + getEffectivePriceCents(item.listing) * item.quantity, 0);
     const getAvailableQuantity = (listing: Listing) => {
       if (listing.type === "service") return 0;
       if (listing.status === "sold") return 0;

@@ -4,7 +4,9 @@ import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { placeOrders } from "../../src/api/orderApi";
 import { EmptyState } from "../../src/components/EmptyState";
+import { useAuth } from "../../src/contexts/AuthContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { useToast } from "../../src/contexts/ToastContext";
 import { colors, radii, spacing } from "../../src/theme/theme";
@@ -14,6 +16,7 @@ const snapBlue = "#00AEEF";
 
 export default function SnapScanPaymentScreen() {
   const router = useRouter();
+  const { token } = useAuth();
   const { completeOrder, itemCount, items, subtotalCents } = useCart();
   const { showToast } = useToast();
   const [permission, requestPermission] = useCameraPermissions();
@@ -26,13 +29,32 @@ export default function SnapScanPaymentScreen() {
       {
         text: "Done",
         onPress: () => {
-          completeOrder();
-          showToast({
-            title: "Payment complete",
-            message: "SnapScan payment was successful. Your basket is now clear.",
-            tone: "success"
-          });
-          router.replace("/(tabs)");
+          if (!token) {
+            showToast({
+              title: "Sign in to checkout",
+              message: "Log in so CampusHub can save your order and email the seller.",
+              tone: "danger"
+            });
+            router.push("/(auth)/login");
+            return;
+          }
+          void placeOrders(token, items.map(({ listing, quantity }) => ({ listingId: listing.id, quantity })), "snapscan")
+            .then(() => {
+              completeOrder();
+              showToast({
+                title: "Payment complete",
+                message: "SnapScan payment was successful. Your order was saved and emails were sent.",
+                tone: "success"
+              });
+              router.replace("/(tabs)");
+            })
+            .catch((error: unknown) => {
+              showToast({
+                title: "Order could not be placed",
+                message: error instanceof Error ? error.message : "Please review your cart and try again.",
+                tone: "danger"
+              });
+            });
         }
       }
     ]);

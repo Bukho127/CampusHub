@@ -5,6 +5,7 @@ import type { Listing, Seller } from "../models/marketplace";
 import { useCart } from "../contexts/CartContext";
 import { colors, radii, spacing } from "../theme/theme";
 import { formatRand } from "../utils/money";
+import { getEffectivePriceCents } from "../utils/pricing";
 import { AssetSlotView } from "./AssetSlotView";
 import { DietaryTagBadge } from "./DietaryTagBadge";
 import { FavoriteButton } from "./FavoriteButton";
@@ -53,7 +54,10 @@ export function ProductCard({ listing, seller, compact }: Props) {
           {seller?.displayName ?? listing.seller?.displayName ?? "Community seller"}
         </Text>
         <View style={styles.footer}>
-          <Text style={styles.price}>{formatRand(listing.priceCents)}</Text>
+          <View style={styles.priceGroup}>
+            <Text style={[styles.price, listing.discountPercent ? styles.discountedPrice : null]}>{formatRand(getEffectivePriceCents(listing))}</Text>
+            {listing.discountPercent ? <><Text style={styles.originalPrice}>{formatRand(listing.priceCents)}</Text><Text style={styles.discountBadge}>-{listing.discountPercent}%</Text></> : null}
+          </View>
           {listing.rating ? (
             <View style={styles.rating}>
               <Feather name="star" size={12} color={colors.yellow} fill={colors.yellow} />
@@ -142,6 +146,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900"
   },
+  priceGroup: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 5 },
+  discountedPrice: { color: colors.accent },
+  originalPrice: { color: colors.muted, fontSize: 11, textDecorationLine: "line-through" },
+  discountBadge: { color: colors.accent, fontSize: 10, fontWeight: "800" },
   rating: {
     alignItems: "center",
     flexDirection: "row",

@@ -51,6 +51,7 @@ export type BackendListing = {
   description: string;
   category: string;
   priceCents: number;
+  discountPercent?: number;
   currency: "ZAR";
   condition?: BackendCondition;
   dietaryTags?: BackendDietaryTag[];

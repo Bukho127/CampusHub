@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { Alert, Animated, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { notifyOrderCompleted } from "../src/api/notificationApi";
+import { placeOrders, type OrderPaymentMethod } from "../src/api/orderApi";
 import { EmptyState } from "../src/components/EmptyState";
 import { useAuth } from "../src/contexts/AuthContext";
 import { useCart } from "../src/contexts/CartContext";
@@ -61,12 +61,12 @@ export default function CheckoutScreen() {
   const cardNumberDigits = cardForm.number.replace(/\D/g, "");
   const cardReady = cardNumberDigits.length >= 12 && cardForm.name.trim().length > 2 && cardForm.expiry.length === 5 && cardForm.cvv.length >= 3;
   const selectedBankProvider = bankProviders.find((item) => item.id === selectedBank) ?? defaultBankProvider;
-  const finishPayment = async (methodLabel: string) => {
+  const finishPayment = async (methodLabel: string, orderMethod: OrderPaymentMethod) => {
     if (isCompletingOrder) return;
     if (!token) {
       showToast({
         title: "Sign in to checkout",
-        message: "Log in so CampusHub can email your receipt and notify the seller.",
+        message: "Log in so CampusHub can save your order and email the seller.",
         tone: "danger"
       });
       router.push("/(auth)/login");
@@ -75,15 +75,12 @@ export default function CheckoutScreen() {
 
     setIsCompletingOrder(true);
     try {
-      await notifyOrderCompleted({
-        items: items.map((item) => ({ listingId: item.listing.id, quantity: item.quantity })),
-        paymentMethod: methodLabel
-      }, token);
+      await placeOrders(token, items.map(({ listing, quantity }) => ({ listingId: listing.id, quantity })), orderMethod);
 
       completeOrder();
       showToast({
         title: "Payment complete",
-        message: `${methodLabel} payment was successful. Receipt and seller emails were sent.`,
+        message: `${methodLabel} payment was successful. Your order was saved and emails were sent.`,
         tone: "success"
       });
       router.replace("/(tabs)");
@@ -178,7 +175,8 @@ export default function CheckoutScreen() {
         {
           text: "Place mock order",
           onPress: () => {
-            void finishPayment(provider.shortLabel);
+            const orderMethod: OrderPaymentMethod = selectedMethod === "instant_eft" ? "eft" : selectedMethod === "payfast" ? "other" : selectedMethod;
+            void finishPayment(provider.shortLabel, orderMethod);
           }
         }
       ]
@@ -424,7 +422,7 @@ export default function CheckoutScreen() {
                     {
                       text: "Done",
                       onPress: () => {
-                        void finishPayment("Card");
+                        void finishPayment("Card", "card");
                       }
                     }
                   ]);

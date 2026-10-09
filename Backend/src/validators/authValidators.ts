@@ -13,6 +13,10 @@ export const loginSchema = z.object({
   password: z.string().min(1)
 });
 
+export const stepUpSchema = z.object({
+  password: z.string().min(1).max(128)
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email().toLowerCase()
 });

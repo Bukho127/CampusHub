@@ -10,6 +10,7 @@ import { AppError } from "../utils/AppError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
 import { resetPasswordSchema } from "../validators/authValidators";
+import jwt from "jsonwebtoken";
 
 const schoolCodeSentMessage = "If that email belongs to an active institution, a verification code has been sent.";
 const passwordResetSentMessage = "If an account exists for that email, reset instructions have been sent.";
@@ -329,4 +330,101 @@ export const submitPasswordResetPage = asyncHandler(async (req: Request, res: Re
     const message = status === 400 ? "This reset link is invalid or has expired. Request a new one." : "We could not reset your password right now. Please try again later.";
     res.status(status).type("html").send(resetPage("Password not updated", message));
   }
+});
+
+const dashboardLoginFailures = new Map<
+  string,
+  { count: number; lockedUntil: number }
+>();
+
+export const dashboardLogin = asyncHandler(async (req: Request, res: Response) => {
+  const email = String(req.body.email).trim().toLowerCase();
+  const password = String(req.body.password);
+  const priorFailures = dashboardLoginFailures.get(email);
+
+  if (priorFailures && priorFailures.lockedUntil > Date.now()) {
+    throw new AppError("Invalid email or password", 401);
+  }
+
+  const user = await User.findOne({ email }).select("+passwordHash");
+  const passwordMatches =
+    user !== null && (await bcrypt.compare(password, user.passwordHash));
+
+  if (!user || !passwordMatches) {
+    const failures = (priorFailures?.count ?? 0) + 1;
+    dashboardLoginFailures.set(email, {
+      count: failures >= 5 ? 0 : failures,
+      lockedUntil: failures >= 5 ? Date.now() + 15 * 60 * 1000 : 0
+    });
+    throw new AppError("Invalid email or password", 401);
+  }
+
+  dashboardLoginFailures.delete(email);
+
+  if (user.status === "banned" || user.status === "deleted") {
+    throw new AppError("This account cannot access the dashboard", 403);
+  }
+
+  if (user.role !== "admin" && user.role !== "vendor") {
+    throw new AppError(
+      "The dashboard is for admins and vendors. Buyers can sign in using the CampusHub mobile app.",
+      403
+    );
+  }
+
+  const token = jwt.sign(
+    { role: user.role, tokenVersion: user.tokenVersion },
+    env.JWT_SECRET,
+    { subject: user._id.toString(), expiresIn: "1h" }
+  );
+
+  res.cookie(env.DASHBOARD_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/api",
+    maxAge: 60 * 60 * 1000
+  });
+
+  sendSuccess(res, { user: publicUser(user) }, "Logged in");
+});
+
+export const dashboardLogout = asyncHandler(async (_req: Request, res: Response) => {
+  res.clearCookie(env.DASHBOARD_COOKIE_NAME, {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/api"
+  });
+  res.clearCookie(env.DASHBOARD_STEPUP_COOKIE_NAME, {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/api"
+  });
+
+  sendSuccess(res, null, "Logged out");
+});
+
+export const stepUp = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user?.id).select("+passwordHash tokenVersion");
+  if (!user || !(await bcrypt.compare(String(req.body.password), user.passwordHash))) {
+    throw new AppError("Password verification failed", 401);
+  }
+
+  const token = jwt.sign(
+    { tokenVersion: user.tokenVersion, purpose: "dashboard-step-up" },
+    env.JWT_SECRET,
+    { subject: user._id.toString(), expiresIn: "5m" }
+  );
+
+  res.cookie(env.DASHBOARD_STEPUP_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/api",
+    maxAge: 5 * 60 * 1000
+  });
+
+  sendSuccess(res, { expiresInSeconds: 300 }, "Step-up verification accepted");
 });

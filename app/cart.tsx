@@ -7,6 +7,7 @@ import { EmptyState } from "../src/components/EmptyState";
 import { useCart } from "../src/contexts/CartContext";
 import { colors, radii, spacing } from "../src/theme/theme";
 import { formatRand } from "../src/utils/money";
+import { getEffectivePriceCents } from "../src/utils/pricing";
 
 export default function CartScreen() {
   const router = useRouter();
@@ -50,7 +51,10 @@ export default function CartScreen() {
                       </Pressable>
                     </View>
                     <View style={styles.itemFooter}>
-                      <Text style={styles.price}>{formatRand(listing.priceCents * quantity)}</Text>
+                      <View>
+                        <Text style={styles.price}>{formatRand(getEffectivePriceCents(listing) * quantity)}</Text>
+                        {listing.discountPercent ? <Text style={styles.originalPrice}>{formatRand(listing.priceCents * quantity)} before discount</Text> : null}
+                      </View>
                       <View style={styles.stepper}>
                         <Pressable accessibilityLabel="Decrease quantity" onPress={() => decrementItem(listing.id)} style={styles.stepperButton}>
                           <Feather name="minus" size={16} color={colors.ink} />
@@ -180,6 +184,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700"
   },
+  originalPrice: { color: colors.muted, fontSize: 11, textDecorationLine: "line-through" },
   stepper: {
     alignItems: "center",
     backgroundColor: colors.surface,

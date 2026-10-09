@@ -42,6 +42,7 @@ type ListingBase = {
   description: string;
   categoryId: string;
   priceCents: number;
+  discountPercent?: number;
   currency: "ZAR";
   location: string;
   sellerId: string;

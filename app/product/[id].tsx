@@ -20,6 +20,7 @@ import type { Listing, Seller } from "../../src/models/marketplace";
 import { getListingById, getListings, getSellerById } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
 import { formatRand } from "../../src/utils/money";
+import { getEffectivePriceCents } from "../../src/utils/pricing";
 
 function formatPreferredTime(value: Date | null) {
   if (!value) return "Choose preferred time";
@@ -180,7 +181,8 @@ export default function ProductDetailScreen() {
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>
             <Text style={styles.title}>{listing.title}</Text>
-            <Text style={styles.price}>{formatRand(listing.priceCents)}</Text>
+            <Text style={styles.price}>{formatRand(getEffectivePriceCents(listing))}</Text>
+            {listing.discountPercent ? <Text style={styles.originalPrice}>{formatRand(listing.priceCents)} · {listing.discountPercent}% off</Text> : null}
           </View>
           {listing.negotiable ? <Badge label="Negotiable" tone="accent" /> : null}
         </View>
@@ -417,6 +419,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 4
   },
+  originalPrice: { color: colors.muted, fontSize: 13, marginTop: 3, textDecorationLine: "line-through" },
   badges: {
     flexDirection: "row",
     flexWrap: "wrap",

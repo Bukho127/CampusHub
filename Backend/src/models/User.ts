@@ -20,6 +20,10 @@ const userSchema = new Schema(
     resetTokenHash: { type: String, select: false },
     resetTokenExpires: { type: Date, select: false },
     tokenVersion: { type: Number, default: 0, min: 0 },
+    status: { type: String,enum: ["active", "banned", "deleted"], default: "active", required: true},
+banReason: { type: String, trim: true, maxlength: 1000 },
+bannedUntil: { type: Date },
+deletedAt: { type: Date },
     identityType: {
       type: String,
       enum: ["student", "faculty", "resident", "vendor"],
