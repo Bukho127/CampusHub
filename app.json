@@ -5,7 +5,13 @@
     "scheme": "communitystore",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/campus-logo.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/campus-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "assetBundlePatterns": [
       "assets/**/*"
     ],
@@ -14,8 +20,12 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/campus-logo.png",
         "backgroundColor": "#ffffff"
       }
+    },
+    "web": {
+      "favicon": "./assets/campus-logo.png"
     },
     "plugins": [
       "expo-router",
