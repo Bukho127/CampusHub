@@ -25,7 +25,8 @@
         {
           "cameraPermission": "Allow CampusHub to access your camera to scan SnapScan QR codes."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

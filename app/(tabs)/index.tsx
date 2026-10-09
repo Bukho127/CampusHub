@@ -1,31 +1,33 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AssetSlotView } from "../../src/components/AssetSlotView";
 import { CategoryChip } from "../../src/components/CategoryChip";
-import { ProductCard } from "../../src/components/ProductCard";
+import { EmptyState } from "../../src/components/EmptyState";
+import { FavoriteButton } from "../../src/components/FavoriteButton";
 import { SearchBar } from "../../src/components/SearchBar";
 import { SectionHeader } from "../../src/components/SectionHeader";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { useCart } from "../../src/contexts/CartContext";
-import type { Category, CommunityPost, Listing, Seller } from "../../src/models/marketplace";
+import type { Category, CommunityPost, Listing } from "../../src/models/marketplace";
 import { getCommunityPosts } from "../../src/services/communityService";
-import { getCategories, getListings, getSellers } from "../../src/services/productService";
+import { getCategories, getListings } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
+import { formatRand } from "../../src/utils/money";
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { itemCount } = useCart();
+  const { isSoldOut, itemCount } = useCart();
   const greetingName = user?.firstName?.trim() || user?.displayName?.trim().split(/\s+/)[0] || "there";
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
-  const [sellers, setSellers] = useState<Seller[]>([]);
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [recent, setRecent] = useState<Listing[]>([]);
+  const [notificationSheetOpen, setNotificationSheetOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,7 +35,6 @@ export default function HomeScreen() {
 
       getCategories().then((items) => { if (active) setCategories(items); }).catch(() => { if (active) setCategories([]); });
       getCommunityPosts().then((result) => { if (active) setCommunityPosts(result.posts); }).catch(() => { if (active) setCommunityPosts([]); });
-      getSellers().then((items) => { if (active) setSellers(items); }).catch(() => { if (active) setSellers([]); });
       getListings({ sort: "rating" }).then((items) => { if (active) setFeatured(items.slice(0, 4)); }).catch(() => { if (active) setFeatured([]); });
       getListings({ sort: "newest" }).then((items) => { if (active) setRecent(items.slice(0, 4)); }).catch(() => { if (active) setRecent([]); });
 
@@ -43,10 +44,59 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), [sellers]);
-
   function submitSearch() {
     router.push({ pathname: "/(tabs)/explore", params: { q: search } });
+  }
+
+  function renderRating(listing: Listing) {
+    const rating = listing.rating ?? 0;
+    return (
+      <View style={styles.listingRating}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Feather
+            key={star}
+            name="star"
+            size={13}
+            color={star <= Math.round(rating) ? colors.ink : colors.subtle}
+            fill={star <= Math.round(rating) ? colors.ink : "transparent"}
+          />
+        ))}
+        <Text style={styles.listingReviewCount}>{listing.reviewCount || "New"}</Text>
+      </View>
+    );
+  }
+
+  function renderListingGrid(items: Listing[]) {
+    return (
+      <View style={styles.listingGrid}>
+        {items.map((item) => {
+          const image = item.images[0];
+          const soldOut = isSoldOut(item);
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${item.title}${soldOut ? ", sold out" : ""}`}
+              key={item.id}
+              onPress={() => router.push(`/product/${item.id}`)}
+              style={[styles.listingTile, soldOut && styles.listingTileSold]}
+            >
+              <View style={styles.listingImageWrap}>
+                {image ? <AssetSlotView slot={image.slot} uri={image.url} height={156} rounded={radii.md} /> : null}
+                <FavoriteButton listingId={item.id} size={22} unselectedColor={colors.subtle} style={styles.listingFavorite} />
+                {soldOut ? (
+                  <View style={styles.listingSoldPill}>
+                    <Text style={styles.listingSoldText}>Sold out</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text numberOfLines={2} style={styles.listingTitle}>{item.title}</Text>
+              <Text numberOfLines={1} style={styles.listingPrice}>{formatRand(item.priceCents)}</Text>
+              {renderRating(item)}
+            </Pressable>
+          );
+        })}
+      </View>
+    );
   }
 
   return (
@@ -58,9 +108,8 @@ export default function HomeScreen() {
             <Text style={styles.subGreeting}>Find campus deals near you</Text>
           </View>
           <View style={styles.headerActions}>
-            <Pressable accessibilityLabel="Open notifications" style={styles.iconButton}>
+            <Pressable accessibilityLabel="Open notifications" onPress={() => setNotificationSheetOpen(true)} style={styles.iconButton}>
               <Feather name="bell" size={21} color={colors.ink} />
-              <View style={styles.notificationDot} />
             </Pressable>
             <Pressable accessibilityLabel="Open cart" onPress={() => router.push("/cart")} style={styles.iconButton}>
               <Feather name="shopping-bag" size={21} color={colors.ink} />
@@ -114,24 +163,10 @@ export default function HomeScreen() {
         </Pressable>
 
         <SectionHeader title="Featured nearby" action="See all" />
-        <FlatList
-          horizontal
-          data={featured}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ProductCard listing={item} seller={sellerMap.get(item.sellerId)} />}
-          contentContainerStyle={styles.productRow}
-          showsHorizontalScrollIndicator={false}
-        />
+        {renderListingGrid(featured)}
 
         <SectionHeader title="Recently listed" />
-        <FlatList
-          horizontal
-          data={recent}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ProductCard listing={item} seller={sellerMap.get(item.sellerId)} />}
-          contentContainerStyle={styles.productRow}
-          showsHorizontalScrollIndicator={false}
-        />
+        {renderListingGrid(recent)}
 
         <SectionHeader title="Community deals" />
         <FlatList
@@ -169,6 +204,24 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
         />
       </ScrollView>
+
+      <Modal animationType="fade" onRequestClose={() => setNotificationSheetOpen(false)} transparent visible={notificationSheetOpen}>
+        <View style={styles.notificationModal}>
+          <Pressable accessibilityLabel="Close notifications" onPress={() => setNotificationSheetOpen(false)} style={styles.notificationBackdrop} />
+          <View style={styles.notificationSheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Notifications</Text>
+              <Pressable accessibilityLabel="Close notifications" onPress={() => setNotificationSheetOpen(false)} style={styles.sheetCloseButton}>
+                <Feather name="x" size={20} color={colors.ink} />
+              </Pressable>
+            </View>
+            <View style={styles.notificationEmpty}>
+              <EmptyState title="No notifications yet" message="Updates about orders, listings, and community activity will appear here." />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -210,15 +263,6 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: "center",
     width: 44
-  },
-  notificationDot: {
-    backgroundColor: colors.danger,
-    borderRadius: 5,
-    height: 10,
-    position: "absolute",
-    right: 11,
-    top: 10,
-    width: 10
   },
   cartBadge: {
     alignItems: "center",
@@ -315,9 +359,76 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 276
   },
-  productRow: {
-    gap: 14,
-    paddingBottom: 24
+  listingGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.lg,
+    paddingBottom: 28
+  },
+  listingTile: {
+    flexBasis: "47%",
+    flexGrow: 1,
+    gap: 7,
+    maxWidth: "48%"
+  },
+  listingTileSold: {
+    opacity: 0.62
+  },
+  listingImageWrap: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    minHeight: 156,
+    overflow: "hidden",
+    position: "relative"
+  },
+  listingFavorite: {
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    borderRadius: radii.pill,
+    minHeight: 40,
+    minWidth: 40,
+    position: "absolute",
+    right: 6,
+    top: 6
+  },
+  listingSoldPill: {
+    backgroundColor: "rgba(23, 23, 23, 0.82)",
+    borderRadius: radii.pill,
+    left: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    position: "absolute",
+    top: 8
+  },
+  listingSoldText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  listingTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 20,
+    minHeight: 40
+  },
+  listingPrice: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  listingRating: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 3
+  },
+  listingReviewCount: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 5
   },
   communityRow: {
     gap: 14,
@@ -399,5 +510,55 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     fontWeight: "800"
+  },
+  notificationModal: {
+    flex: 1,
+    justifyContent: "flex-end"
+  },
+  notificationBackdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.32)",
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0
+  },
+  notificationSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    gap: spacing.md,
+    minHeight: 340,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    backgroundColor: colors.line,
+    borderRadius: radii.pill,
+    height: 5,
+    width: 46
+  },
+  sheetHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  sheetTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: "800"
+  },
+  sheetCloseButton: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    height: 38,
+    justifyContent: "center",
+    width: 38
+  },
+  notificationEmpty: {
+    flex: 1,
+    justifyContent: "center"
   }
 });

@@ -37,6 +37,16 @@ function shortDateLabel(value: string) {
 }
 
 const timeOptions = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30"];
+const commentPageSize = 2;
+
+function initialsFor(name?: string) {
+  return (name ?? "Campus member")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
 
 function CommunityEmptyState({ onCreate }: { onCreate: () => void }) {
   const pulse = useRef(new Animated.Value(0)).current;
@@ -109,6 +119,7 @@ export default function CommunityScreen() {
   const [eventImage, setEventImage] = useState<SelectedImage | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [visibleCommentCounts, setVisibleCommentCounts] = useState<Record<string, number>>({});
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -180,6 +191,16 @@ export default function CommunityScreen() {
   function replacePost(updated: CommunityPost) {
     setCommunityPosts((current) => current.map((post) => (post.id === updated.id ? updated : post)));
     setFeaturedPost((current) => (current?.id === updated.id ? updated : current));
+  }
+
+  function showMoreComments(post: CommunityPost) {
+    setVisibleCommentCounts((current) => {
+      const visibleCount = current[post.id] ?? commentPageSize;
+      return {
+        ...current,
+        [post.id]: Math.min(post.comments.length, visibleCount + commentPageSize)
+      };
+    });
   }
 
   function openComposer() {
@@ -320,6 +341,10 @@ export default function CommunityScreen() {
       const updated = await addCommunityPostComment(post.id, body, token);
       replacePost(updated);
       setCommentDrafts((current) => ({ ...current, [post.id]: "" }));
+      setVisibleCommentCounts((current) => ({
+        ...current,
+        [post.id]: Math.max(current[post.id] ?? commentPageSize, Math.min(updated.comments.length, commentPageSize))
+      }));
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Could not add this comment.");
     }
@@ -350,15 +375,30 @@ export default function CommunityScreen() {
   function renderPost({ item }: { item: CommunityPost }) {
     const viewerId = user?.id ?? user?._id;
     const canDelete = Boolean(viewerId && item.authorId === viewerId);
+    const visibleCommentCount = visibleCommentCounts[item.id] ?? commentPageSize;
+    const visibleComments = item.comments.slice(0, visibleCommentCount);
+    const hiddenCommentCount = Math.max(0, item.comments.length - visibleCommentCount);
 
     return (
       <View style={styles.post}>
-        {item.imageUrl ? <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" /> : null}
         <View style={styles.postContent}>
-          <View style={styles.postHeader}>
-            <Badge label={item.type} tone={item.type === "event" ? "accent" : "light"} />
+          <View style={styles.postTopRow}>
+            <View style={styles.authorAvatar}>
+              <Text style={styles.authorAvatarText}>{initialsFor(item.authorName)}</Text>
+            </View>
+            <View style={styles.authorBlock}>
+              <Text style={styles.authorName}>{item.authorName ?? "Campus member"}</Text>
+              <View style={styles.postMetaRow}>
+                <Text style={styles.date}>{item.dateLabel}</Text>
+                {item.venue ? (
+                  <>
+                    <View style={styles.metaDot} />
+                    <Text numberOfLines={1} style={styles.metaVenue}>{item.venue}</Text>
+                  </>
+                ) : null}
+              </View>
+            </View>
             <View style={styles.postHeaderActions}>
-              <Text style={styles.date}>{item.dateLabel}</Text>
               {canDelete ? (
                 <Pressable accessibilityLabel="Delete community post" onPress={() => confirmDeletePost(item)} style={styles.deleteButton}>
                   <Feather name="trash-2" size={17} color={colors.danger} />
@@ -366,16 +406,13 @@ export default function CommunityScreen() {
               ) : null}
             </View>
           </View>
+          <View style={styles.postTypeRow}>
+            <Badge label={item.type} tone={item.type === "event" ? "accent" : "light"} />
+          </View>
           <Text style={styles.postTitle}>{item.title}</Text>
           <Text style={styles.summary}>{item.summary}</Text>
-          {item.venue ? (
-            <View style={styles.venueRow}>
-              <Feather name="map-pin" size={14} color={colors.muted} />
-              <Text numberOfLines={1} style={styles.venueText}>{item.venue}</Text>
-            </View>
-          ) : null}
+          {item.imageUrl ? <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" /> : null}
           {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
-          <Text style={styles.author}>Posted by {item.authorName ?? "Campus member"}</Text>
 
           <View style={styles.actions}>
             <Pressable accessibilityRole="button" onPress={() => toggleLike(item)} style={[styles.actionPill, item.likedByMe && styles.actionPillActive]}>
@@ -388,12 +425,35 @@ export default function CommunityScreen() {
             </View>
           </View>
 
-          {item.comments.slice(0, 2).map((comment) => (
-            <View key={comment.id} style={styles.comment}>
-              <Text style={styles.commentAuthor}>{comment.authorName}</Text>
-              <Text style={styles.commentBody}>{comment.body}</Text>
+          <View style={styles.commentsPanel}>
+            <View style={styles.commentsHeader}>
+              <Text style={styles.commentsTitle}>Comments</Text>
+              <Text style={styles.commentsCount}>{item.commentCount}</Text>
             </View>
-          ))}
+            {visibleComments.length ? (
+              visibleComments.map((comment) => (
+                <View key={comment.id} style={styles.comment}>
+                  <View style={styles.commentAvatar}>
+                    <Text style={styles.commentAvatarText}>{initialsFor(comment.authorName)}</Text>
+                  </View>
+                  <View style={styles.commentText}>
+                    <Text style={styles.commentAuthor}>{comment.authorName}</Text>
+                    <Text style={styles.commentBody}>{comment.body}</Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noCommentsText}>No comments yet. Start the conversation.</Text>
+            )}
+            {hiddenCommentCount > 0 ? (
+              <Pressable accessibilityRole="button" onPress={() => showMoreComments(item)} style={styles.moreCommentsButton}>
+                <Text style={styles.moreCommentsText}>
+                  More comments ({hiddenCommentCount})
+                </Text>
+                <Feather name="chevron-down" size={16} color={colors.ink} />
+              </Pressable>
+            ) : null}
+          </View>
 
           <View style={styles.commentBox}>
             <TextInput
@@ -631,17 +691,62 @@ const styles = StyleSheet.create({
     overflow: "hidden"
   },
   postImage: {
+    borderRadius: radii.md,
     height: 176,
     width: "100%"
   },
   postContent: {
-    gap: spacing.sm,
-    padding: spacing.md
+    gap: spacing.md,
+    padding: spacing.lg
   },
-  postHeader: {
+  postTopRow: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between"
+    gap: spacing.sm
+  },
+  authorAvatar: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: "center",
+    width: 42
+  },
+  authorAvatarText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  authorBlock: {
+    flex: 1,
+    gap: 3
+  },
+  authorName: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  postMetaRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs
+  },
+  metaDot: {
+    backgroundColor: colors.line,
+    borderRadius: radii.pill,
+    height: 4,
+    width: 4
+  },
+  metaVenue: {
+    color: colors.muted,
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  postTypeRow: {
+    alignItems: "flex-start"
   },
   postHeaderActions: {
     alignItems: "center",
@@ -656,8 +761,9 @@ const styles = StyleSheet.create({
   },
   postTitle: {
     color: colors.ink,
-    fontSize: 18,
-    fontWeight: "900"
+    fontSize: 19,
+    fontWeight: "900",
+    lineHeight: 24
   },
   summary: {
     color: colors.ink,
@@ -716,9 +822,52 @@ const styles = StyleSheet.create({
   actionTextActive: {
     color: colors.white
   },
-  comment: {
+  commentsPanel: {
     backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    gap: spacing.sm,
+    padding: spacing.md
+  },
+  commentsHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  commentsTitle: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  commentsCount: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  comment: {
+    flexDirection: "row",
+    gap: spacing.sm
+  },
+  commentAvatar: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderColor: colors.line,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    height: 30,
+    justifyContent: "center",
+    width: 30
+  },
+  commentAvatarText: {
+    color: colors.ink,
+    fontSize: 10,
+    fontWeight: "900"
+  },
+  commentText: {
+    backgroundColor: colors.white,
+    borderColor: colors.line,
     borderRadius: radii.sm,
+    borderWidth: 1,
+    flex: 1,
     gap: 2,
     padding: spacing.sm
   },
@@ -731,6 +880,24 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     lineHeight: 18
+  },
+  noCommentsText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18
+  },
+  moreCommentsButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: spacing.xs,
+    minHeight: 34,
+    paddingRight: spacing.sm
+  },
+  moreCommentsText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "800"
   },
   commentBox: {
     alignItems: "center",

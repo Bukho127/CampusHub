@@ -1,7 +1,8 @@
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../src/contexts/AuthContext";
 import { assetSlots } from "../src/theme/assets";
 import { colors, radii, spacing } from "../src/theme/theme";
 
@@ -30,13 +31,24 @@ const slides: Array<{
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { isAuthenticated, isHydrating } = useAuth();
   const { width } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<(typeof slides)[number]>>(null);
 
+  useEffect(() => {
+    if (!isHydrating && isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated, isHydrating, router]);
+
   function handleScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
     setActiveIndex(nextIndex);
+  }
+
+  if (isHydrating || isAuthenticated) {
+    return <SafeAreaView style={styles.safe} />;
   }
 
   return (

@@ -1,15 +1,18 @@
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AssetSlotView } from "../../src/components/AssetSlotView";
 import { CategoryChip } from "../../src/components/CategoryChip";
 import { EmptyState } from "../../src/components/EmptyState";
-import { ProductCard } from "../../src/components/ProductCard";
+import { FavoriteButton } from "../../src/components/FavoriteButton";
 import { SearchBar } from "../../src/components/SearchBar";
-import type { Category, Listing, ListingCondition, Seller, SellerType, SortMode } from "../../src/models/marketplace";
-import { getCategories, getListings, getSellers } from "../../src/services/productService";
+import { useCart } from "../../src/contexts/CartContext";
+import type { Category, Listing, ListingCondition, SellerType, SortMode } from "../../src/models/marketplace";
+import { getCategories, getListings } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
+import { formatRand } from "../../src/utils/money";
 
 const sortOptions: { id: SortMode; label: string }[] = [
   { id: "recommended", label: "Recommended" },
@@ -22,7 +25,9 @@ const sortOptions: { id: SortMode; label: string }[] = [
 const conditions: ListingCondition[] = ["New", "Like New", "Good", "Fair"];
 
 export default function ExploreScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams<{ q?: string; category?: string }>();
+  const { isSoldOut } = useCart();
   const [query, setQuery] = useState(params.q ?? "");
   const [categoryId, setCategoryId] = useState(params.category ?? "all");
   const [sort, setSort] = useState<SortMode>("recommended");
@@ -31,10 +36,8 @@ export default function ExploreScreen() {
   const [minRating, setMinRating] = useState<number | undefined>();
   const [showFilters, setShowFilters] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [sellers, setSellers] = useState<Seller[]>([]);
   const [results, setResults] = useState<Listing[]>([]);
 
-  const sellerMap = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), [sellers]);
   const activeFilterCount = [condition, sellerType, minRating].filter(Boolean).length;
 
   useEffect(() => {
@@ -46,10 +49,7 @@ export default function ExploreScreen() {
   }, [params.category]);
 
   useEffect(() => {
-    Promise.all([getCategories(), getSellers()]).then(([categories, sellers]) => {
-      setCategories(categories);
-      setSellers(sellers);
-    });
+    getCategories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
@@ -62,6 +62,51 @@ export default function ExploreScreen() {
     setMinRating(undefined);
     setSort("recommended");
     setCategoryId("all");
+  }
+
+  function renderRating(listing: Listing) {
+    const rating = listing.rating ?? 0;
+    return (
+      <View style={styles.listingRating}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Feather
+            key={star}
+            name="star"
+            size={13}
+            color={star <= Math.round(rating) ? colors.ink : colors.subtle}
+            fill={star <= Math.round(rating) ? colors.ink : "transparent"}
+          />
+        ))}
+        <Text style={styles.listingReviewCount}>{listing.reviewCount || "New"}</Text>
+      </View>
+    );
+  }
+
+  function renderListing({ item }: { item: Listing }) {
+    const image = item.images[0];
+    const soldOut = isSoldOut(item);
+
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${item.title}${soldOut ? ", sold out" : ""}`}
+        onPress={() => router.push(`/product/${item.id}`)}
+        style={[styles.listingTile, soldOut && styles.listingTileSold]}
+      >
+        <View style={styles.listingImageWrap}>
+          {image ? <AssetSlotView slot={image.slot} uri={image.url} height={156} rounded={radii.md} /> : null}
+          <FavoriteButton listingId={item.id} size={22} unselectedColor={colors.subtle} style={styles.listingFavorite} />
+          {soldOut ? (
+            <View style={styles.listingSoldPill}>
+              <Text style={styles.listingSoldText}>Sold out</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text numberOfLines={2} style={styles.listingTitle}>{item.title}</Text>
+        <Text numberOfLines={1} style={styles.listingPrice}>{formatRand(item.priceCents)}</Text>
+        {renderRating(item)}
+      </Pressable>
+    );
   }
 
   return (
@@ -123,7 +168,7 @@ export default function ExploreScreen() {
         numColumns={2}
         columnWrapperStyle={styles.columns}
         contentContainerStyle={styles.results}
-        renderItem={({ item }) => <ProductCard listing={item} seller={sellerMap.get(item.sellerId)} compact />}
+        renderItem={renderListing}
         ListEmptyComponent={<EmptyState title="No results" message="Try a different search, category, or filter combination." />}
       />
     </SafeAreaView>
@@ -205,11 +250,76 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   results: {
-    paddingBottom: 24,
-    paddingHorizontal: spacing.lg
+    paddingBottom: 28,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm
   },
   columns: {
-    gap: 12,
-    marginBottom: 12
+    gap: spacing.lg,
+    marginBottom: spacing.lg
+  },
+  listingTile: {
+    flex: 1,
+    gap: 7,
+    maxWidth: "48%"
+  },
+  listingTileSold: {
+    opacity: 0.62
+  },
+  listingImageWrap: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    minHeight: 156,
+    overflow: "hidden",
+    position: "relative"
+  },
+  listingFavorite: {
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    borderRadius: radii.pill,
+    minHeight: 40,
+    minWidth: 40,
+    position: "absolute",
+    right: 6,
+    top: 6
+  },
+  listingSoldPill: {
+    backgroundColor: "rgba(23, 23, 23, 0.82)",
+    borderRadius: radii.pill,
+    left: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    position: "absolute",
+    top: 8
+  },
+  listingSoldText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  listingTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 20,
+    minHeight: 40
+  },
+  listingPrice: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  listingRating: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 3
+  },
+  listingReviewCount: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 5
   }
 });
