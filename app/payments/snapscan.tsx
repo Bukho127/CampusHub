@@ -6,6 +6,8 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from "../../src/components/EmptyState";
 import { useCart } from "../../src/contexts/CartContext";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { placeOrders } from "../../src/api/orderApi";
 import { colors, radii, spacing } from "../../src/theme/theme";
 import { formatRand } from "../../src/utils/money";
 
@@ -14,6 +16,7 @@ const snapBlue = "#00AEEF";
 export default function SnapScanPaymentScreen() {
   const router = useRouter();
   const { completeOrder, itemCount, items, subtotalCents } = useCart();
+  const { token } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [torchOn, setTorchOn] = useState(false);
   const [scannedData, setScannedData] = useState<string | null>(null);
@@ -24,8 +27,13 @@ export default function SnapScanPaymentScreen() {
       {
         text: "Done",
         onPress: () => {
-          completeOrder();
-          router.replace("/(tabs)");
+          if (!token) {
+            Alert.alert("Sign in required", "Sign in to place an order so it can be saved to your account.");
+            return;
+          }
+          void placeOrders(token, items.map(({ listing, quantity }) => ({ listingId: listing.id, quantity })), "snapscan")
+            .then(() => { completeOrder(); router.replace("/(tabs)"); })
+            .catch((error: unknown) => Alert.alert("Order could not be placed", error instanceof Error ? error.message : "Please review your cart and try again."));
         }
       }
     ]);

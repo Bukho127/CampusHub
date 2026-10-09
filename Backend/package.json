@@ -7,11 +7,12 @@
     "node": ">=24 <27"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "seed": "tsx src/seed/seed.ts"
-  },
+  "dev": "tsx watch src/server.ts",
+  "build": "tsc",
+  "start": "node dist/server.js",
+  "seed": "tsx src/seed/seed.ts",
+  "create-admin": "tsx src/scripts/createFirstAdmin.ts"
+},
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",

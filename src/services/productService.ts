@@ -92,6 +92,7 @@ function mapListing(listing: BackendListing): Listing {
     description: listing.description,
     categoryId: listing.category,
     priceCents: listing.priceCents,
+    discountPercent: listing.discountPercent ?? 0,
     currency: listing.currency,
     location: listing.location,
     sellerId,

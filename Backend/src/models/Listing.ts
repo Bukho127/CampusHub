@@ -18,6 +18,7 @@ const listingSchema = new Schema(
     description: { type: String, required: true, trim: true },
     category: { type: String, required: true, trim: true },
     priceCents: { type: Number, required: true, min: 0 },
+    discountPercent: { type: Number, min: 0, max: 90, default: 0, required: true },
     currency: { type: String, enum: ["ZAR"], default: "ZAR", required: true },
     condition: { type: String, enum: ["New", "Like New", "Good", "Fair"] },
     dietaryTags: { type: [{ type: String, enum: ["healthy", "vegan", "vegetarian", "halal"] }], default: [] },

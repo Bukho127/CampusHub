@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-campus-background: #f7f7f7;
+  --color-campus-surface: #ffffff;
+  --color-campus-ink: #171717;
+  --color-campus-muted: #656565;
+  --color-campus-subtle: #9b9b9b;
+  --color-campus-line: #dedede;
+  --color-campus-accent: #f15a24;
+  --color-campus-accent-soft: #fff0e9;
+}
+
+@layer base {
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-campus-background);
+    color: var(--color-campus-ink);
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}

@@ -423,6 +423,10 @@ export default function CommunityScreen() {
           ListHeaderComponent={
             <View style={styles.header}>
               <Text style={styles.title}>Community</Text>
+              <Pressable accessibilityRole="button" onPress={() => router.push("/polls")} style={styles.pollsButton}>
+                <Feather name="bar-chart-2" size={15} color={colors.accent} />
+                <Text style={styles.pollsButtonText}>Polls</Text>
+              </Pressable>
               <Text style={styles.subtitle}>Post campus events, rally support, and help the best ideas rise.</Text>
 
               {mostLiked ? (
@@ -563,6 +567,23 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 28,
     fontWeight: "900"
+  },
+  pollsButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm
+  },
+  pollsButtonText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: "800"
   },
   subtitle: {
     color: colors.muted,

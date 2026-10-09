@@ -5,6 +5,8 @@ import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollV
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState } from "../src/components/EmptyState";
 import { useCart } from "../src/contexts/CartContext";
+import { useAuth } from "../src/contexts/AuthContext";
+import { placeOrders, type OrderPaymentMethod } from "../src/api/orderApi";
 import { bankProviders, paymentProviders, type IconFamily, type PaymentMethodId } from "../src/payments/paymentProviders";
 import { colors, radii, spacing } from "../src/theme/theme";
 import { formatRand } from "../src/utils/money";
@@ -35,6 +37,7 @@ function ProviderIcon({ color, family, name, size = 24 }: ProviderIconProps) {
 export default function CheckoutScreen() {
   const router = useRouter();
   const { completeOrder, itemCount, items, subtotalCents } = useCart();
+  const { token } = useAuth();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>(defaultPaymentProvider.id);
   const [selectedBank, setSelectedBank] = useState(defaultBankProvider.id);
   const [cardSheetOpen, setCardSheetOpen] = useState(false);
@@ -53,6 +56,22 @@ export default function CheckoutScreen() {
   const cardNumberDigits = cardForm.number.replace(/\D/g, "");
   const cardReady = cardNumberDigits.length >= 12 && cardForm.name.trim().length > 2 && cardForm.expiry.length === 5 && cardForm.cvv.length >= 3;
   const selectedBankProvider = bankProviders.find((item) => item.id === selectedBank) ?? defaultBankProvider;
+
+  const submitMockOrder = async (method: OrderPaymentMethod) => {
+    if (!token) {
+      Alert.alert("Sign in required", "Sign in to place an order so it can be saved to your account.");
+      return false;
+    }
+    try {
+      await placeOrders(token, items.map(({ listing, quantity }) => ({ listingId: listing.id, quantity })), method);
+      completeOrder();
+      router.replace("/(tabs)");
+      return true;
+    } catch (error) {
+      Alert.alert("Order could not be placed", error instanceof Error ? error.message : "Please review your cart and try again.");
+      return false;
+    }
+  };
 
   const updateCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
@@ -86,10 +105,7 @@ export default function CheckoutScreen() {
         { text: "Keep editing", style: "cancel" },
         {
           text: "Place mock order",
-          onPress: () => {
-            completeOrder();
-            router.replace("/(tabs)");
-          }
+          onPress: () => void submitMockOrder(selectedMethod === "instant_eft" ? "eft" : selectedMethod === "payfast" ? "other" : selectedMethod)
         }
       ]
     );
@@ -318,15 +334,12 @@ export default function CheckoutScreen() {
               <Pressable
                 accessibilityRole="button"
                 disabled={!cardReady}
-                onPress={() => {
-                  setCardSheetOpen(false);
-                  Alert.alert("Card approved", "Your mock card payment was successful.", [
+                  onPress={() => {
+                    setCardSheetOpen(false);
+                    Alert.alert("Card approved", "Your mock card payment was successful.", [
                     {
                       text: "Done",
-                      onPress: () => {
-                        completeOrder();
-                        router.replace("/(tabs)");
-                      }
+                      onPress: () => void submitMockOrder("card")
                     }
                   ]);
                 }}

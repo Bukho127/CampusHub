@@ -10,7 +10,11 @@ import { apiRouter } from "./routes";
 import { renderPasswordResetPage, submitPasswordResetPage } from "./controllers/authController";
 import { sendSuccess } from "./utils/apiResponse";
 
-const allowedOrigins = env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean);
+const allowedOrigins = new Set([
+  ...env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter((origin) => origin && origin !== "*"),
+  env.DASHBOARD_ORIGIN
+]);
+
 const resetPageLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
 morgan.token("safe-url", (req) => (req.url ?? "").replace(/([?&]token=)[^&]*/gi, "$1[redacted]"));
 
@@ -20,16 +24,17 @@ app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins === true || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.has(origin)) {
         callback(null, true);
         return;
       }
 
-      callback(new Error("Not allowed by CORS"));
+      callback(null, false);
     },
     credentials: true
   })
 );
+
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,

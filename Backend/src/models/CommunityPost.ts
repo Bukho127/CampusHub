@@ -3,6 +3,7 @@ import { Schema, model } from "mongoose";
 const communityCommentSchema = new Schema(
   {
     author: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    moderationStatus: { type: String, enum: ["active", "hidden"], default: "active", required: true },
     body: { type: String, required: true, trim: true, maxlength: 1200 }
   },
   { timestamps: true }

@@ -29,6 +29,7 @@ const listingBaseSchema = z.object({
   description: z.string().trim().min(10).max(3000),
   category: z.string().trim().min(1).max(80),
   priceCents: z.coerce.number().int().min(0),
+  discountPercent: z.coerce.number().int().min(0).max(90).default(0),
   condition: conditionSchema.optional(),
   dietaryTags: dietaryTagsSchema,
   quantityAvailable: z.coerce.number().int().min(0).optional(),
