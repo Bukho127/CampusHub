@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import axios from "axios";
 import { apiClient } from "../api/client";
 import { requestAdminStepUp } from "../api/adminStepUp";
 
@@ -11,6 +12,7 @@ export default function AdminVendorsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [workingId, setWorkingId] = useState<string | null>(null);
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
@@ -21,11 +23,22 @@ export default function AdminVendorsPage() {
   }, [page, status]);
   useEffect(() => { void load(); }, [load]);
   async function decide(vendor: Vendor, nextStatus: "verified" | "unverified") {
+    if (workingId) return;
     const action = nextStatus === "verified" ? "approve" : "reject";
     if (!window.confirm(`${action === "approve" ? "Approve" : "Reject"} ${vendor.displayName}'s vendor application?`)) return;
-    if (!(await requestAdminStepUp())) return;
-    try { await apiClient.patch(`/admin/users/${vendor._id}/verification`, { vendorVerificationStatus: nextStatus }); await load(); }
-    catch { setError(`Could not ${action} this application.`); }
+    setWorkingId(vendor._id);
+    setError("");
+    try {
+      if (!(await requestAdminStepUp(setError))) return;
+      await apiClient.patch(`/admin/users/${vendor._id}/verification`, { vendorVerificationStatus: nextStatus });
+      await load();
+    } catch (requestError: unknown) {
+      setError(axios.isAxiosError<{ message?: string }>(requestError)
+        ? requestError.response?.data.message ?? `Could not ${action} this application.`
+        : `Could not ${action} this application.`);
+    } finally {
+      setWorkingId(null);
+    }
   }
   return <section className="mx-auto w-full max-w-[1180px] px-4 py-8 sm:px-6 lg:px-9"><p className="mb-2 text-[10px] font-extrabold tracking-[1.1px] text-campus-accent">ADMIN WORKSPACE</p><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-3xl font-extrabold tracking-tight text-campus-ink">Vendor verification</h1><p className="mt-2 text-sm text-campus-muted">Review vendor applications and set their verification status.</p></div><select className="rounded-lg border border-campus-line bg-white px-3 py-2 text-sm" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter vendor verification status"><option value="pending">Pending</option><option value="verified">Verified</option><option value="unverified">Unverified</option></select></div>
     {error && <p className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}

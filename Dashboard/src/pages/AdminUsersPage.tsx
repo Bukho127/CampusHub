@@ -26,7 +26,7 @@ export default function AdminUsersPage() {
   useEffect(() => { void load(); }, [load]);
 
   async function changeStatus(user: User) {
-    if (!(await requestAdminStepUp())) return;
+    if (!(await requestAdminStepUp(setError))) return;
     if (user.status === "banned") {
       try { await apiClient.patch(`/admin/users/${user._id}/status`, { status: "active" }); await load(); }
       catch { setError(`Could not unban ${user.displayName}.`); }
@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   }
   async function removeUser(user: User) {
     if (!window.confirm(`Delete ${user.displayName}'s account? Their account will be disabled and sessions revoked.`)) return;
-    if (!(await requestAdminStepUp())) return;
+    if (!(await requestAdminStepUp(setError))) return;
     try { await apiClient.delete(`/admin/users/${user._id}`); await load(); }
     catch { setError(`Could not delete ${user.displayName}.`); }
   }

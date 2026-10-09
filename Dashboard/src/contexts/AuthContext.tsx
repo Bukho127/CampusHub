@@ -9,6 +9,7 @@ import {
 } from "react";
 import axios from "axios";
 import { apiClient } from "../api/client";
+import { resetAdminStepUp } from "../api/adminStepUp";
 import type { DashboardUser } from "../api/types";
 
 interface AuthContextValue {
@@ -24,7 +25,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const clearUser = useCallback(() => setUser(null), []);
+  const clearUser = useCallback(() => {
+    resetAdminStepUp();
+    setUser(null);
+  }, []);
 
   useEffect(() => {
     apiClient
@@ -46,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "/auth/dashboard/login",
         { email, password }
       );
+      resetAdminStepUp();
       setUser(response.data.data.user);
     } catch (error: unknown) {
       if (axios.isAxiosError<{ message?: string }>(error)) {
@@ -59,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await apiClient.post("/auth/dashboard/logout");
     } finally {
+      resetAdminStepUp();
       setUser(null);
     }
   }, []);
