@@ -7,17 +7,18 @@ import { ApiError } from "../../src/api/client";
 import { deleteListingApi } from "../../src/api/marketplaceApi";
 import { fetchSellerReviews, createSellerReview } from "../../src/api/reviewsApi";
 import { reportSellerApi } from "../../src/api/reportsApi";
+import { AssetSlotView } from "../../src/components/AssetSlotView";
 import { Badge } from "../../src/components/Badge";
 import { CategoryChip } from "../../src/components/CategoryChip";
 import { VerificationBadge } from "../../src/components/VerificationBadge";
 import { EmptyState } from "../../src/components/EmptyState";
 import { ProfileAvatar } from "../../src/components/ProfileAvatar";
-import { ProductCard } from "../../src/components/ProductCard";
 import { useAuth } from "../../src/contexts/AuthContext";
 import type { BackendReview } from "../../src/api/types";
 import type { Listing, Seller } from "../../src/models/marketplace";
 import { getListingsBySeller, getSellerById } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
+import { formatRand } from "../../src/utils/money";
 
 const AnimatedStar = Animated.createAnimatedComponent(FontAwesome);
 
@@ -303,8 +304,22 @@ export default function SellerProfileScreen() {
         {listingError ? <Text accessibilityRole="alert" style={styles.error}>{listingError}</Text> : null}
         <View style={styles.grid}>
           {listings.map((listing) => (
-            <View key={listing.id} style={styles.listingTile}>
-              <ProductCard listing={listing} seller={seller} compact />
+            <View key={listing.id} style={styles.listingRow}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Open ${listing.title}`} onPress={() => router.push(`/product/${listing.id}`)} style={styles.listingSummary}>
+                <View style={styles.listingImage}>
+                  {listing.images[0] ? <AssetSlotView slot={listing.images[0].slot} uri={listing.images[0].url} height={76} rounded={radii.sm} /> : null}
+                </View>
+                <View style={styles.listingCopy}>
+                  <Text numberOfLines={1} style={styles.listingTitle}>{listing.title}</Text>
+                  <Text numberOfLines={1} style={styles.listingMeta}>
+                    {listing.type === "goods" ? listing.condition ?? "Goods" : "Service"} - {listing.location}
+                  </Text>
+                  <View style={styles.listingFooter}>
+                    <Text style={styles.listingPrice}>{formatRand(listing.priceCents)}</Text>
+                    <Text style={styles.listingStatus}>{listing.status}</Text>
+                  </View>
+                </View>
+              </Pressable>
               {isOwnProfile ? (
                 <Pressable accessibilityLabel={`Delete ${listing.title}`} onPress={() => confirmDeleteListing(listing)} style={styles.listingDeleteButton}>
                   <Feather name="trash-2" size={17} color={colors.danger} />
@@ -424,25 +439,70 @@ const styles = StyleSheet.create({
   cancelButton: { alignItems: "center", borderColor: colors.line, borderRadius: radii.pill, borderWidth: 1, justifyContent: "center", minHeight: 44, paddingHorizontal: spacing.lg },
   cancelButtonText: { color: colors.ink, fontSize: 13, fontWeight: "700" },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+    gap: spacing.sm,
     marginTop: 12
   },
-  listingTile: {
+  listingRow: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 96,
+    padding: 10
+  },
+  listingSummary: {
+    alignItems: "center",
     flex: 1,
-    minWidth: 158,
-    position: "relative"
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 76
+  },
+  listingImage: {
+    borderRadius: radii.sm,
+    overflow: "hidden",
+    width: 76
+  },
+  listingCopy: {
+    flex: 1,
+    gap: 4
+  },
+  listingTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  listingMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    textTransform: "capitalize"
+  },
+  listingFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
+    marginTop: 4
+  },
+  listingPrice: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  listingStatus: {
+    color: colors.success,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "capitalize"
   },
   listingDeleteButton: {
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: colors.surface,
     borderRadius: radii.pill,
-    height: 36,
+    height: 40,
     justifyContent: "center",
-    position: "absolute",
-    left: 8,
-    top: 8,
-    width: 36
+    width: 40
   }
 });

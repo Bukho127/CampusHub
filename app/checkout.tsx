@@ -3,7 +3,9 @@ import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { Alert, Animated, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { notifyOrderCompleted } from "../src/api/notificationApi";
 import { EmptyState } from "../src/components/EmptyState";
+import { useAuth } from "../src/contexts/AuthContext";
 import { useCart } from "../src/contexts/CartContext";
 import { useToast } from "../src/contexts/ToastContext";
 import { bankProviders, paymentProviders, type IconFamily, type PaymentMethodId } from "../src/payments/paymentProviders";
@@ -35,6 +37,7 @@ function ProviderIcon({ color, family, name, size = 24 }: ProviderIconProps) {
 
 export default function CheckoutScreen() {
   const router = useRouter();
+  const { token } = useAuth();
   const { completeOrder, itemCount, items, subtotalCents } = useCart();
   const { showToast } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>(defaultPaymentProvider.id);
@@ -46,6 +49,7 @@ export default function CheckoutScreen() {
     name: "",
     number: ""
   });
+  const [isCompletingOrder, setIsCompletingOrder] = useState(false);
   const cardSheetTranslateY = useRef(new Animated.Value(0)).current;
   const cardSheetClosing = useRef(false);
 
@@ -57,14 +61,41 @@ export default function CheckoutScreen() {
   const cardNumberDigits = cardForm.number.replace(/\D/g, "");
   const cardReady = cardNumberDigits.length >= 12 && cardForm.name.trim().length > 2 && cardForm.expiry.length === 5 && cardForm.cvv.length >= 3;
   const selectedBankProvider = bankProviders.find((item) => item.id === selectedBank) ?? defaultBankProvider;
-  const finishPayment = (methodLabel: string) => {
-    completeOrder();
-    showToast({
-      title: "Payment complete",
-      message: `${methodLabel} payment was successful. Your basket is now clear.`,
-      tone: "success"
-    });
-    router.replace("/(tabs)");
+  const finishPayment = async (methodLabel: string) => {
+    if (isCompletingOrder) return;
+    if (!token) {
+      showToast({
+        title: "Sign in to checkout",
+        message: "Log in so CampusHub can email your receipt and notify the seller.",
+        tone: "danger"
+      });
+      router.push("/(auth)/login");
+      return;
+    }
+
+    setIsCompletingOrder(true);
+    try {
+      await notifyOrderCompleted({
+        items: items.map((item) => ({ listingId: item.listing.id, quantity: item.quantity })),
+        paymentMethod: methodLabel
+      }, token);
+
+      completeOrder();
+      showToast({
+        title: "Payment complete",
+        message: `${methodLabel} payment was successful. Receipt and seller emails were sent.`,
+        tone: "success"
+      });
+      router.replace("/(tabs)");
+    } catch (error) {
+      showToast({
+        title: "Could not complete order",
+        message: error instanceof Error ? error.message : "Please try again in a moment.",
+        tone: "danger"
+      });
+    } finally {
+      setIsCompletingOrder(false);
+    }
   };
   const closeCardSheet = () => {
     if (cardSheetClosing.current) return;
@@ -147,7 +178,7 @@ export default function CheckoutScreen() {
         {
           text: "Place mock order",
           onPress: () => {
-            finishPayment(provider.shortLabel);
+            void finishPayment(provider.shortLabel);
           }
         }
       ]
@@ -264,11 +295,12 @@ export default function CheckoutScreen() {
             </View>
             <Pressable
               accessibilityRole="button"
+              disabled={isCompletingOrder}
               onPress={handleContinue}
-              style={styles.payButton}
+              style={[styles.payButton, isCompletingOrder && styles.payButtonDisabled]}
             >
               <ProviderIcon color={colors.white} family={provider.iconFamily} name={provider.iconName} size={20} />
-              <Text style={styles.payButtonText}>Continue with {provider.shortLabel}</Text>
+              <Text style={styles.payButtonText}>{isCompletingOrder ? "Sending emails..." : `Continue with ${provider.shortLabel}`}</Text>
             </Pressable>
             <Text style={styles.disclaimer}>Payment flows are simulated until backend payment processing is added.</Text>
           </View>
@@ -385,21 +417,21 @@ export default function CheckoutScreen() {
 
               <Pressable
                 accessibilityRole="button"
-                disabled={!cardReady}
+                disabled={!cardReady || isCompletingOrder}
                 onPress={() => {
                   setCardSheetOpen(false);
                   Alert.alert("Card approved", "Your mock card payment was successful.", [
                     {
                       text: "Done",
                       onPress: () => {
-                        finishPayment("Card");
+                        void finishPayment("Card");
                       }
                     }
                   ]);
                 }}
-                style={[styles.submitCardButton, !cardReady && styles.submitCardButtonDisabled]}
+                style={[styles.submitCardButton, (!cardReady || isCompletingOrder) && styles.submitCardButtonDisabled]}
               >
-                <Text style={styles.submitCardText}>Pay {formatRand(subtotalCents)}</Text>
+                <Text style={styles.submitCardText}>{isCompletingOrder ? "Sending emails..." : `Pay ${formatRand(subtotalCents)}`}</Text>
               </Pressable>
             </ScrollView>
           </Animated.View>
@@ -648,6 +680,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     minHeight: 52,
     paddingHorizontal: spacing.lg
+  },
+  payButtonDisabled: {
+    opacity: 0.55
   },
   payButtonText: {
     color: colors.white,

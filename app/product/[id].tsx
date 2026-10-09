@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { notifyServiceRequested } from "../../src/api/notificationApi";
 import { AssetSlotView } from "../../src/components/AssetSlotView";
 import { Badge } from "../../src/components/Badge";
 import { DietaryTagBadge } from "../../src/components/DietaryTagBadge";
@@ -11,12 +13,19 @@ import { VerificationBadge } from "../../src/components/VerificationBadge";
 import { EmptyState } from "../../src/components/EmptyState";
 import { ProfileAvatar } from "../../src/components/ProfileAvatar";
 import { ProductCard } from "../../src/components/ProductCard";
+import { useAuth } from "../../src/contexts/AuthContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { useToast } from "../../src/contexts/ToastContext";
 import type { Listing, Seller } from "../../src/models/marketplace";
 import { getListingById, getListings, getSellerById } from "../../src/services/productService";
 import { colors, radii, spacing } from "../../src/theme/theme";
 import { formatRand } from "../../src/utils/money";
+
+function formatPreferredTime(value: Date | null) {
+  if (!value) return "Choose preferred time";
+
+  return value.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
 export default function ProductDetailScreen() {
   const router = useRouter();
@@ -25,6 +34,12 @@ export default function ProductDetailScreen() {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [similar, setSimilar] = useState<Listing[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
+  const [serviceNote, setServiceNote] = useState("");
+  const [preferredTime, setPreferredTime] = useState<Date | null>(null);
+  const [isSendingServiceRequest, setIsSendingServiceRequest] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const { isAuthenticated, token } = useAuth();
   const { addItem, getAvailableQuantity, getQuantity, isSoldOut } = useCart();
   const { showToast } = useToast();
 
@@ -60,6 +75,75 @@ export default function ProductDetailScreen() {
   const availableQuantity = getAvailableQuantity(listing);
   const soldOut = isSoldOut(listing);
   const reachedQuantityLimit = listing.type === "goods" && cartQuantity >= availableQuantity;
+  const serviceReady = serviceNote.trim().length >= 3 && Boolean(preferredTime);
+
+  function closeServiceRequest() {
+    setShowTimePicker(false);
+    setServiceSheetOpen(false);
+  }
+
+  function openServiceRequest() {
+    if (!isAuthenticated) {
+      router.push("/(auth)/login");
+      return;
+    }
+
+    setShowTimePicker(false);
+    setServiceSheetOpen(true);
+  }
+
+  async function submitServiceRequest() {
+    if (!listing) return;
+    if (!token) {
+      closeServiceRequest();
+      router.push("/(auth)/login");
+      return;
+    }
+
+    if (serviceNote.trim().length < 3) {
+      showToast({
+        title: "Add request details",
+        message: "Write a short note so the seller knows what you need.",
+        tone: "danger"
+      });
+      return;
+    }
+
+    if (!preferredTime) {
+      showToast({
+        title: "Choose a time",
+        message: "Pick a preferred time before sending the request.",
+        tone: "danger"
+      });
+      return;
+    }
+
+    setIsSendingServiceRequest(true);
+    try {
+      await notifyServiceRequested({
+        listingId: listing.id,
+        note: serviceNote.trim(),
+        preferredTime: preferredTime.toISOString()
+      }, token);
+
+      closeServiceRequest();
+      setServiceNote("");
+      setPreferredTime(null);
+      showToast({
+        title: "Service request sent",
+        message: `The seller has been emailed about ${listing.title} for ${formatPreferredTime(preferredTime)}.`,
+        tone: "success"
+      });
+    } catch (error) {
+      showToast({
+        title: "Could not send request",
+        message: error instanceof Error ? error.message : "Please try again in a moment.",
+        tone: "danger"
+      });
+    } finally {
+      setIsSendingServiceRequest(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -141,7 +225,7 @@ export default function ProductDetailScreen() {
           accessibilityRole="button"
           onPress={() => {
             if (listing.type === "service") {
-              seller && router.push(`/seller/${seller.id}`);
+              openServiceRequest();
               return;
             }
             addItem(listing);
@@ -167,9 +251,91 @@ export default function ProductDetailScreen() {
           </Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.push("/cart")} style={styles.cartLink}>
-          <Text style={styles.demoNote}>{cartQuantity > 0 ? "View cart" : "Checkout and booking are not processed yet."}</Text>
+          <Text style={styles.demoNote}>
+            {listing.type === "service"
+              ? "Send a request and the seller can follow up with you."
+              : cartQuantity > 0
+                ? "View cart"
+                : "Checkout and booking are not processed yet."}
+          </Text>
         </Pressable>
       </View>
+
+      <Modal animationType="fade" onRequestClose={closeServiceRequest} transparent visible={serviceSheetOpen}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalRoot}>
+          <Pressable accessibilityLabel="Close service request" onPress={closeServiceRequest} style={styles.backdrop} />
+          <View style={styles.serviceSheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetTitleBlock}>
+                <Text style={styles.sheetTitle}>Request service</Text>
+                <Text style={styles.sheetSubtitle}>{listing.title}</Text>
+              </View>
+              <Pressable accessibilityLabel="Close service request" onPress={closeServiceRequest} style={styles.sheetCloseButton}>
+                <Feather name="x" size={20} color={colors.ink} />
+              </Pressable>
+            </View>
+
+            <View style={styles.serviceSellerRow}>
+              <ProfileAvatar uri={seller?.avatarUrl} size={44} iconSize={22} />
+              <View style={styles.serviceSellerText}>
+                <Text style={styles.serviceSellerName}>{seller?.displayName ?? "Community seller"}</Text>
+                <Text style={styles.serviceSellerMeta}>{seller?.location ?? listing.location}</Text>
+              </View>
+            </View>
+
+            <View style={styles.serviceField}>
+              <Text style={styles.serviceLabel}>What do you need?</Text>
+              <TextInput
+                multiline
+                onChangeText={setServiceNote}
+                placeholder="Share a few details about the service you want..."
+                placeholderTextColor={colors.subtle}
+                style={[styles.serviceInput, styles.serviceNoteInput]}
+                textAlignVertical="top"
+                value={serviceNote}
+              />
+            </View>
+
+            <View style={styles.serviceField}>
+              <Text style={styles.serviceLabel}>Preferred time</Text>
+              <Pressable accessibilityRole="button" onPress={() => setShowTimePicker(true)} style={styles.timePickerButton}>
+                <Text style={[styles.timePickerText, !preferredTime && styles.timePickerPlaceholder]}>{formatPreferredTime(preferredTime)}</Text>
+                <Feather name="clock" size={18} color={colors.muted} />
+              </Pressable>
+              {showTimePicker ? (
+                <View style={Platform.OS === "ios" ? styles.iosPickerWrap : undefined}>
+                  <DateTimePicker
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    mode="time"
+                    onChange={(event, selectedDate) => {
+                      if (Platform.OS !== "ios") setShowTimePicker(false);
+                      if (event.type === "dismissed") return;
+                      if (selectedDate) setPreferredTime(selectedDate);
+                    }}
+                    value={preferredTime ?? new Date()}
+                  />
+                  {Platform.OS === "ios" ? (
+                    <Pressable accessibilityRole="button" onPress={() => setShowTimePicker(false)} style={styles.timePickerDoneButton}>
+                      <Text style={styles.timePickerDoneText}>Done</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSendingServiceRequest}
+              onPress={submitServiceRequest}
+              style={[styles.submitServiceButton, (!serviceReady || isSendingServiceRequest) && styles.submitServiceButtonDisabled]}
+            >
+              <Text style={styles.submitServiceText}>{isSendingServiceRequest ? "Sending..." : "Send request"}</Text>
+            </Pressable>
+            <Text style={styles.serviceDisclaimer}>The seller will receive your request by email.</Text>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -325,5 +491,162 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginTop: 12
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: "flex-end"
+  },
+  backdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.34)",
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0
+  },
+  serviceSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    gap: spacing.md,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    backgroundColor: colors.line,
+    borderRadius: radii.pill,
+    height: 5,
+    width: 46
+  },
+  sheetHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+    justifyContent: "space-between"
+  },
+  sheetTitleBlock: {
+    flex: 1
+  },
+  sheetTitle: {
+    color: colors.ink,
+    fontSize: 21,
+    fontWeight: "900"
+  },
+  sheetSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 3
+  },
+  sheetCloseButton: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    height: 40,
+    justifyContent: "center",
+    width: 40
+  },
+  serviceSellerRow: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    flexDirection: "row",
+    gap: spacing.md,
+    padding: spacing.md
+  },
+  serviceSellerText: {
+    flex: 1
+  },
+  serviceSellerName: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  serviceSellerMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2
+  },
+  serviceField: {
+    gap: spacing.xs
+  },
+  serviceLabel: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  serviceInput: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    color: colors.ink,
+    fontSize: 15,
+    minHeight: 48,
+    paddingHorizontal: spacing.md
+  },
+  serviceNoteInput: {
+    minHeight: 104,
+    paddingTop: spacing.md
+  },
+  timePickerButton: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
+    minHeight: 48,
+    paddingHorizontal: spacing.md
+  },
+  timePickerText: {
+    color: colors.ink,
+    flex: 1,
+    fontSize: 15
+  },
+  timePickerPlaceholder: {
+    color: colors.subtle
+  },
+  iosPickerWrap: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    overflow: "hidden"
+  },
+  timePickerDoneButton: {
+    alignSelf: "flex-end",
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: spacing.md
+  },
+  timePickerDoneText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  submitServiceButton: {
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    borderRadius: radii.pill,
+    justifyContent: "center",
+    minHeight: 50
+  },
+  submitServiceButtonDisabled: {
+    opacity: 0.45
+  },
+  submitServiceText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  serviceDisclaimer: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center"
   }
 });
