@@ -18,7 +18,16 @@ import { sendSuccess } from "../utils/apiResponse";
 import { invalidateListings, invalidateSeller, resetCacheVersions } from "../utils/cacheKeys";
 
 export const updateUserVerification = asyncHandler(async (req: Request, res: Response) => {
-  const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+  const update = { ...req.body };
+  if (req.body.vendorVerificationStatus === "verified" || req.body.vendorVerificationStatus === "pending") {
+    update.identityType = "vendor";
+    update.role = "vendor";
+  }
+  if (req.body.vendorVerificationStatus === "unverified") {
+    update.role = "user";
+  }
+
+  const user = await User.findByIdAndUpdate(req.params.id, update, {
     new: true,
     runValidators: true
   });
@@ -29,7 +38,7 @@ export const updateUserVerification = asyncHandler(async (req: Request, res: Res
 
   invalidateSeller(user._id.toString());
   invalidateListings(undefined, user._id.toString());
-  await recordAdminAudit(req, "user.verification.updated", "user", String(user._id), req.body);
+  await recordAdminAudit(req, "user.verification.updated", "user", String(user._id), update);
   sendSuccess(res, { user }, "User verification updated");
 });
 

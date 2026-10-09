@@ -182,6 +182,7 @@ export const requestVendorVerification = asyncHandler(async (req: Request, res: 
   }
 
   user.identityType = "vendor";
+  user.role = "vendor";
   if (user.vendorVerificationStatus === "unverified") {
     user.vendorVerificationStatus = "pending";
   }

@@ -120,7 +120,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     email,
     passwordHash,
     identityType,
-    role: "user",
+    role: identityType === "vendor" ? "vendor" : "user",
     emailVerificationStatus: "pending",
     vendorVerificationStatus: identityType === "vendor" ? "pending" : "unverified"
   });
@@ -365,9 +365,10 @@ export const dashboardLogin = asyncHandler(async (req: Request, res: Response) =
     throw new AppError("This account cannot access the dashboard", 403);
   }
 
-  if (user.role !== "admin" && user.role !== "vendor") {
+  const isStudent = user.role === "user" && user.identityType === "student";
+  if (user.role !== "admin" && user.role !== "vendor" && !isStudent) {
     throw new AppError(
-      "The dashboard is for admins and vendors. Buyers can sign in using the CampusHub mobile app.",
+      "The dashboard is available to students, admins and vendors.",
       403
     );
   }
